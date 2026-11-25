@@ -1,6 +1,6 @@
 # Vídeo demo — Conferência (LSG Sky Chefs · LATAM)
 
-`conferencia-demo.mp4` — vídeo de apresentação do app, 1920×1080, 30 fps, ~79 s, sem áudio.
+`conferencia-demo.mp4` — vídeo de apresentação do app, 1920×1080, 30 fps, 79 s, com trilha original (`build/make_music.py`).
 
 Tudo que aparece no vídeo é o app real (cópia em `app-snapshot/`) rodando com um
 Firebase falso e **dados de exemplo** — voos, nomes e fotos são fictícios.

@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 (async () => {
-  const [mode, arg, fpsArg] = process.argv.slice(2);
+  const [mode, arg, fpsArg, fromArg] = process.argv.slice(2);
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
@@ -24,7 +24,7 @@ const fs = require('fs');
     const n = Math.round(dur * fps);
     const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
       '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', arg], { stdio: ['pipe', 'inherit', 'inherit'] });
-    for (let i = 0; i < n; i++) {
+    for (let i = Math.round(Number(fromArg || 0) * fps); i < n; i++) {
       await page.evaluate((t) => window.render(t), i / fps);
       const buf = await page.screenshot({ type: 'jpeg', quality: 95 });
       if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
