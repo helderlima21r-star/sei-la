@@ -1,0 +1,2584 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conferência · LSG Sky Chefs</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#120f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Conferência">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root{
+    --ink:#120f24; --panel:#1c1832; --panel2:#241d3f; --line:#362f52;
+    --text:#edf1f5; --text-dim:#aab3c6; --text-mute:#7c86a0; --text-faint:#5c6684;
+    --pink:#ed1650; --pink-mid:#ff5f8f; --pink-soft:#ff8fae; --pink-bg:#3a0f28; --pink-line:#5c1c3a;
+    --green:#35b073; --amber:#ffb020; --blue:#4098d7;
+    --font-display:'Big Shoulders Display', sans-serif; --font-body:'IBM Plex Sans', sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--ink); color:var(--text); font-family:var(--font-body); -webkit-tap-highlight-color:transparent; }
+  body{ min-height:100vh; overscroll-behavior-y:none; }
+  input,textarea,button{ font-family:var(--font-body); }
+  button{ cursor:pointer; }
+  .hidden{ display:none !important; }
+  input[type="number"]{ -moz-appearance:textfield; }
+  input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  /* ---------- Login ---------- */
+  .login-screen{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; background:radial-gradient(circle at 20% 0%, var(--pink-bg) 0%, var(--ink) 55%); }
+  .login-card{ width:100%; max-width:360px; display:flex; flex-direction:column; gap:18px; }
+  .login-badge{ display:inline-flex; align-self:flex-start; align-items:center; gap:6px; background:var(--pink-bg); border:1px solid var(--pink-line); border-radius:999px; padding:8px 16px; }
+  .login-badge b{ font-size:11px; font-weight:800; letter-spacing:1px; color:var(--pink-mid); }
+  .login-badge span{ font-size:11px; font-weight:700; letter-spacing:1px; color:var(--text-dim); }
+  .login-title{ font-family:var(--font-display); font-size:40px; font-weight:800; margin:0; }
+  .login-sub{ margin:0; font-size:14px; color:var(--text-dim); }
+  .login-field{ display:flex; flex-direction:column; gap:6px; }
+  .login-field label{ font-size:12px; font-weight:700; color:var(--text-dim); }
+  .login-field input{ height:52px; border-radius:14px; border:1px solid var(--line); background:var(--panel); color:var(--text); padding:0 16px; font-size:16px; }
+  .login-field input:focus{ outline:none; border-color:var(--pink-mid); }
+  .pass-wrap{ position:relative; }
+  .pass-wrap input{ padding-right:46px; width:100%; }
+  .pass-toggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); width:38px; height:38px; border:none; background:transparent; color:var(--text-mute); border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  .pass-toggle svg{ width:19px; height:19px; }
+  .login-error{ font-size:13px; color:var(--pink-mid); min-height:16px; }
+  .btn-primary{ height:56px; border-radius:14px; border:none; background:var(--pink); color:#fff; font-size:16px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-primary:active{ background:#c9123f; }
+  .btn-ghost{ height:48px; border-radius:14px; border:1px solid var(--line); background:transparent; color:var(--text-dim); font-size:14px; font-weight:600; }
+
+  /* ---------- Shell ---------- */
+  body:not(.authed) .app{ display:none; }
+  body.authed .login-screen{ display:none; }
+  .app{ max-width:460px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+  .screen{ display:none; flex-direction:column; flex:1; }
+  .screen.active{ display:flex; }
+
+  .topbar{ padding:26px 22px 0 22px; display:flex; flex-direction:column; gap:14px; }
+  .topbar-row{ display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:inline-flex; align-items:center; gap:6px; }
+  .brand b{ font-size:11px; font-weight:700; letter-spacing:1px; color:var(--text-dim); }
+  .brand em{ font-style:normal; font-size:11px; font-weight:700; color:var(--text-faint); }
+  .brand strong{ font-size:11px; font-weight:800; letter-spacing:1px; color:var(--pink-mid); }
+  .admin-tag{ font-size:9px; font-weight:800; letter-spacing:.5px; color:var(--text-mute); background:var(--panel2); border-radius:999px; padding:4px 9px; }
+  .logout-btn{ border:none; background:transparent; color:var(--text-mute); font-size:12px; font-weight:600; }
+
+  /* ---------- Home ---------- */
+  .home-title{ font-family:var(--font-display); font-size:34px; font-weight:800; margin:0; }
+  .home-cards{ padding:24px 22px; display:flex; flex-direction:column; gap:14px; flex:1; min-width:0; }
+  .card-cta{ width:100%; text-align:left; border:none; border-radius:20px; background:linear-gradient(135deg, var(--pink) 0%, #b0123c 100%); color:#fff; padding:26px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .card-cta .t1{ font-family:var(--font-display); font-size:22px; font-weight:800; }
+  .card-cta .t2{ font-size:13px; font-weight:500; color:rgba(255,255,255,.85); }
+  .card-sec{ width:100%; text-align:left; border:1px solid var(--line); border-radius:20px; background:var(--panel); color:var(--text); padding:20px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .card-sec .t1{ font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .card-sec .t2{ font-size:12px; font-weight:500; color:var(--text-dim); }
+  .count-pill{ min-width:30px; height:30px; padding:0 8px; border-radius:999px; background:rgba(255,176,32,.15); color:var(--amber); font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .card-arrow{ color:var(--text-mute); flex-shrink:0; }
+
+  /* ---------- Wizard ---------- */
+  .wiz-step-badge{ width:56px; height:56px; border-radius:50%; background:var(--pink-bg); border:2px solid var(--pink); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:24px; font-weight:800; flex-shrink:0; }
+  .wiz-head{ display:flex; align-items:center; gap:16px; }
+  .wiz-head h1{ margin:0; font-family:var(--font-display); font-size:24px; font-weight:800; line-height:1.05; }
+  .wiz-head p{ margin:0; font-size:13px; font-weight:500; color:var(--text-dim); }
+  .wiz-count{ font-size:12px; font-weight:600; color:var(--text-mute); }
+  .wiz-body{ padding:22px; display:flex; flex-direction:column; gap:16px; flex:1; overflow-y:auto; min-width:0; }
+  .field-card{ display:flex; flex-direction:column; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px; }
+  .field-card label{ font-size:12px; font-weight:700; color:var(--text-dim); }
+  .field-card input, .field-card textarea{ border:none; background:transparent; color:#fff; font-size:20px; font-weight:700; padding:0; width:100%; }
+  .field-card textarea{ font-size:14px; font-weight:400; resize:none; height:60px; }
+  .qty-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .qty-box{ display:flex; flex-direction:column; gap:6px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 8px; }
+  .qty-box label{ font-size:10px; font-weight:700; color:var(--text-mute); text-transform:uppercase; }
+  .qty-box input{ width:100%; border:none; text-align:center; font-size:20px; font-weight:800; color:#fff; background:transparent; }
+
+  .cat-card{ display:flex; flex-direction:column; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px; transition:border-color .15s; min-width:0; }
+  .cat-card.has-pend{ border-color:var(--pink-mid); }
+  .cat-name{ font-size:15px; font-weight:700; }
+  .toggle-row{ display:flex; gap:8px; }
+  .toggle-btn{ flex:1; height:40px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--text-mute); font-size:13px; font-weight:700; }
+  .toggle-btn.active{ border:none; background:var(--pink); color:#fff; }
+  .toggle-btn.active.warn{ background:transparent; border:1px solid var(--amber); background:rgba(255,176,32,.12); color:var(--amber); }
+  .cat-extra{ display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .cat-extra > div{ min-width:0; }
+  .mini-label{ font-size:11px; font-weight:700; color:var(--text-dim); }
+  .mini-input{ height:44px; border-radius:10px; border:1px solid var(--line); background:var(--ink); color:#fff; padding:0 14px; font-size:15px; font-weight:700; width:100%; min-width:0; box-sizing:border-box; }
+  .mini-input[type="time"], .mini-input[type="date"]{ -webkit-appearance:none; appearance:none; }
+  .mini-textarea{ border-radius:10px; border:1px solid var(--line); background:var(--ink); color:var(--text); padding:10px 12px; font-size:13px; resize:none; height:56px; width:100%; }
+  .warn-note{ display:flex; align-items:flex-start; gap:9px; border:1.5px dashed #4a3a14; border-radius:12px; padding:12px 14px; background:rgba(255,176,32,.06); }
+  .warn-note span{ font-size:11.5px; font-weight:500; color:#d9b877; line-height:1.5; }
+
+  .photo-field{ display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }
+  .photo-field .name{ font-size:15px; font-weight:700; }
+  .photo-btn{ display:flex; align-items:center; justify-content:center; gap:8px; height:44px; border-radius:10px; border:1.5px dashed var(--pink-line); color:var(--pink-soft); font-size:13px; font-weight:700; }
+  .photo-btn.tall{ height:96px; flex-direction:column; }
+  .photo-thumb{ width:100%; border-radius:12px; display:block; max-height:180px; object-fit:cover; }
+  .photo-tile-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .photo-tile{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:140px; border-radius:16px; border:1.5px dashed var(--pink-line); color:var(--pink-soft); background:var(--panel); text-align:center; overflow:hidden; position:relative; }
+  .photo-tile img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .photo-tile .lbl{ position:relative; z-index:1; font-size:13px; font-weight:700; }
+  .photo-tile.has-img .lbl{ background:rgba(18,15,36,.65); padding:3px 8px; border-radius:8px; color:#fff; }
+  .photo-tile-remove{ position:absolute; top:6px; right:6px; z-index:2; width:26px; height:26px; border-radius:50%; border:none; background:rgba(18,15,36,.75); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+
+  .wiz-foot{ padding:16px 22px 30px 22px; display:flex; flex-direction:column; gap:10px; }
+  .pendente-link{ align-self:center; background:none; border:none; color:var(--text-mute); font-size:12px; font-weight:600; text-decoration:underline; padding:6px; }
+
+  /* ---------- Confirm ---------- */
+  .confirm-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; padding:0 32px; }
+  .confirm-icon{ width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .confirm-title{ font-family:var(--font-display); font-size:28px; font-weight:800; text-align:center; margin:6px 0 0 0; }
+  .confirm-sub{ font-size:14px; font-weight:500; color:var(--text-dim); text-align:center; margin:2px 0 0 0; }
+  .confirm-chip{ display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:10px 20px; margin-top:18px; }
+  .confirm-chip b{ font-family:var(--font-display); font-size:17px; font-weight:800; color:var(--pink-mid); }
+  .confirm-chip span{ font-size:13px; font-weight:600; color:var(--text-dim); }
+  .pend-list{ width:100%; padding:22px 0; display:flex; flex-direction:column; gap:10px; }
+  .pend-item{ display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--amber); border-radius:14px; padding:14px 16px; }
+  .pend-item .row{ display:flex; align-items:center; justify-content:space-between; }
+  .pend-tag{ font-size:11px; font-weight:700; color:var(--amber); background:rgba(255,176,32,.12); border-radius:999px; padding:4px 10px; }
+  .pend-ok{ display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 16px; opacity:.55; font-size:13px; font-weight:600; }
+
+  /* ---------- Pendentes / Histórico lists ---------- */
+  .list-search{ height:46px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--text); padding:0 16px; font-size:14px; width:100%; }
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip-btn{ height:34px; padding:0 14px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--text-mute); font-size:12.5px; font-weight:700; white-space:nowrap; }
+  .chip-btn.active{ border-color:var(--pink); background:var(--pink-bg); color:var(--pink-mid); }
+  .flight-item{ display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 18px; text-align:left; width:100%; border-color:var(--line); }
+  .flight-item.is-pend{ border-color:var(--amber); }
+  .flight-item .row{ display:flex; align-items:center; justify-content:space-between; }
+  .flight-item .num{ font-family:var(--font-display); font-size:19px; font-weight:800; }
+  .badge-ok{ font-size:11px; font-weight:700; color:var(--green); background:rgba(53,176,115,.12); border-radius:999px; padding:4px 10px; }
+  .badge-pend{ font-size:11px; font-weight:700; color:var(--amber); background:rgba(255,176,32,.12); border-radius:999px; padding:4px 10px; }
+  .badge-resolved{ font-size:11px; font-weight:700; color:var(--amber); background:transparent; border:1px solid var(--amber); border-radius:999px; padding:3px 10px; }
+  .flight-item .meta{ font-size:12px; font-weight:500; color:var(--text-dim); }
+  .empty-note{ text-align:center; color:var(--text-mute); font-size:13px; padding:40px 20px; }
+
+  .bar-cat{ display:flex; flex-direction:column; gap:4px; }
+  .bar-cat .row{ display:flex; align-items:center; justify-content:space-between; }
+  .bar-cat .row span{ font-size:13px; font-weight:700; }
+  .bar-cat .row b{ font-size:12px; font-weight:700; color:var(--pink-soft); }
+  .bar-track{ height:8px; border-radius:999px; background:var(--panel2); }
+  .bar-fill{ height:8px; border-radius:999px; background:var(--pink); }
+
+  /* ---------- Detail sheet ---------- */
+  .sheet-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:flex-end; z-index:40; }
+  .sheet{ width:100%; max-width:460px; margin:0 auto; max-height:88vh; overflow-y:auto; background:var(--ink); border-radius:24px 24px 0 0; border:1px solid var(--line); padding:22px; display:flex; flex-direction:column; gap:16px; }
+  .sheet-head{ display:flex; align-items:center; justify-content:space-between; }
+  .sheet-close{ border:none; background:var(--panel); color:var(--text-dim); width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .detail-block{ display:flex; flex-direction:column; gap:8px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .detail-block .name{ font-size:14px; font-weight:700; }
+  .detail-block .desc{ font-size:13px; color:var(--text-dim); }
+  .detail-img{ width:100%; border-radius:10px; display:block; cursor:pointer; }
+  .detail-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .photo-group{ display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; }
+  .photo-group-head{ display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:700; }
+  .photo-group-count{ font-size:11px; font-weight:800; color:var(--text-mute); background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:2px 8px; }
+  .photo-card{ margin:0; display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .photo-card .detail-img{ aspect-ratio:4/3; object-fit:cover; background:var(--panel2); }
+  .photo-card figcaption{ font-size:11.5px; font-weight:600; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pend-photo-row{ display:flex; align-items:center; gap:12px; padding:6px 0; }
+  .pend-photo-row + .pend-photo-row{ border-top:1px solid var(--line); padding-top:12px; }
+  .pend-thumb{ width:72px; height:72px; flex:none; object-fit:cover; border-radius:10px; }
+  .photo-missing{ display:flex; align-items:center; justify-content:center; aspect-ratio:4/3; padding:8px; border-radius:10px; border:1.5px dashed var(--line); background:var(--panel2); font-size:11px; font-weight:700; color:var(--text-faint); text-align:center; }
+  .photo-missing.pend-thumb{ aspect-ratio:auto; font-size:9.5px; }
+  .pend-thumb-empty{ display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; color:var(--text-faint); border:1.5px dashed var(--line); text-align:center; cursor:default; }
+
+  .lightbox-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:80; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .lightbox-backdrop img{ max-width:100%; max-height:100%; border-radius:12px; object-fit:contain; }
+  .lightbox-close{ position:absolute; top:20px; right:20px; width:40px; height:40px; border-radius:50%; border:none; background:rgba(255,255,255,.15); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; }
+
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--panel); border:1px solid var(--line); color:var(--text); font-size:13px; font-weight:600; padding:12px 18px; border-radius:999px; z-index:60; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-badge"><b>SKY CHEFS</b><span>· LATAM</span></div>
+    <div>
+      <h1 class="login-title">Conferência</h1>
+      <p class="login-sub">Entre com o usuário da equipe</p>
+    </div>
+    <div class="login-field">
+      <label for="loginUser">Usuário</label>
+      <input type="text" id="loginUser" autocomplete="username" placeholder="Usuário">
+    </div>
+    <div class="login-field">
+      <label for="loginPass">Senha</label>
+      <div class="pass-wrap">
+        <input type="password" id="loginPass" autocomplete="current-password" placeholder="Senha">
+        <button type="button" class="pass-toggle" id="loginPassToggle" aria-label="Mostrar senha">
+          <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eyeOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-primary" id="loginBtn">Entrar</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app">
+
+  <!-- HOME -->
+  <div class="screen" id="screenHome">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="brand"><b>SKY CHEFS</b><em>·</em><strong>LATAM</strong></div>
+        <button class="logout-btn" id="logoutBtn">Sair</button>
+      </div>
+      <h1 class="home-title">Conferência</h1>
+    </div>
+    <div class="home-cards">
+      <div id="uploadQueueBanner" class="hidden" style="display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--amber);border-radius:14px;padding:12px 16px;font-size:12.5px;font-weight:600;color:var(--text-dim);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <span id="uploadQueueBannerText">Reenviando fotos pendentes…</span>
+      </div>
+      <button class="card-cta" id="btnNovoChecklist">
+        <div><div class="t1">Novo checklist</div><div class="t2">Começar um registro de voo</div></div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </button>
+      <button class="card-sec" id="btnPendentes">
+        <div><div class="t1">Pendentes</div><div class="t2">Voos aguardando conclusão</div></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="count-pill" id="pendCount">0</span>
+          <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+      </button>
+      <button class="card-sec" id="btnHistorico">
+        <div><div class="t1">Histórico <span class="admin-tag" id="histCardAdminTag">ADMIN</span></div><div class="t2" id="histCardSub">Todos os checklists enviados</div></div>
+        <svg class="card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- WIZARD -->
+  <div class="screen" id="screenWizard">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="brand"><b>SKY CHEFS</b><em>·</em><strong>LATAM</strong></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="wiz-count" id="wizCount">1/5</span>
+          <button class="sheet-close" id="wizClose" style="width:28px;height:28px;font-size:14px;" aria-label="Cancelar e voltar ao menu">✕</button>
+        </div>
+      </div>
+      <div class="wiz-head">
+        <div class="wiz-step-badge" id="wizBadge">1</div>
+        <div><h1 id="wizTitle">Novo registro</h1><p id="wizSub">Número do voo e quantidade a bordo</p></div>
+      </div>
+    </div>
+
+    <div class="wiz-body" id="wizBody"><!-- preenchido via JS --></div>
+
+    <div class="wiz-foot">
+      <div style="display:flex; gap:10px;">
+        <button class="btn-ghost" id="wizBack" style="flex:0 0 128px; height:56px; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></svg>
+          Voltar
+        </button>
+        <button class="btn-primary" id="wizNext" style="flex:1;">Continuar
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <button class="pendente-link" id="wizLeavePending">Deixar pendente</button>
+    </div>
+  </div>
+
+  <!-- CONFIRMAÇÃO -->
+  <div class="screen" id="screenConfirm">
+    <div class="confirm-wrap" id="confirmWrap"><!-- preenchido via JS --></div>
+  </div>
+
+  <!-- PENDENTES -->
+  <div class="screen" id="screenPendentes">
+    <div class="topbar">
+      <div class="topbar-row">
+        <button class="logout-btn" id="backFromPendentes">‹ Voltar</button>
+      </div>
+      <h1 class="home-title" style="font-size:28px;">Pendentes</h1>
+    </div>
+    <div class="home-cards" id="pendentesList" style="gap:10px;"></div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="screen" id="screenHistorico">
+    <div class="topbar">
+      <div class="topbar-row">
+        <button class="logout-btn" id="backFromHistorico">‹ Voltar</button>
+        <span class="admin-tag" id="histAdminTag">ADMIN</span>
+      </div>
+      <h1 class="home-title" style="font-size:28px;">Histórico</h1>
+      <input type="text" class="list-search" id="histSearch" placeholder="Buscar por voo ou expedidor">
+      <div class="chip-row" id="histDateChips">
+        <button type="button" class="chip-btn active" data-range="today">Hoje</button>
+        <button type="button" class="chip-btn" data-range="yesterday">Ontem</button>
+        <button type="button" class="chip-btn" data-range="7d">7 dias</button>
+        <button type="button" class="chip-btn" data-range="month">Este mês</button>
+        <button type="button" class="chip-btn" data-range="all">Tudo</button>
+      </div>
+      <button type="button" class="pendente-link" id="btnExportHistPdf" style="margin-top:10px;align-self:flex-start;">Exportar período em PDF ↓</button>
+    </div>
+    <div class="home-cards" style="gap:22px;">
+      <div class="bar-cat-wrap" id="histCatWrap">
+        <p style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text-mute);text-transform:uppercase;margin:0 0 10px 0;">Categoria que tem mais pendência</p>
+        <div style="display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;" id="histCatBars"></div>
+      </div>
+      <div id="histWordsWrap" class="hidden">
+        <p style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text-mute);text-transform:uppercase;margin:0 0 10px 0;">O que mais costuma faltar</p>
+        <div style="display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;" id="histWordBars"></div>
+        <button type="button" class="pendente-link hidden" id="histWordsToggle" style="margin-top:2px;">Mostrar tudo</button>
+      </div>
+      <div id="histTrendWrap" class="hidden">
+        <p style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text-mute);text-transform:uppercase;margin:0 0 10px 0;">Este mês vs mês passado</p>
+        <div style="display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;" id="histTrendBars"></div>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text-mute);text-transform:uppercase;margin:0 0 10px 0;">Registros</p>
+        <div id="histList" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button type="button" class="btn-ghost hidden" id="histLoadMore" style="width:100%;margin-top:12px;">Carregar mais</button>
+        <p id="histStatus" style="margin:10px 0 0 0;font-size:11.5px;font-weight:500;color:var(--text-faint);text-align:center;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESOLVER PENDÊNCIA -->
+  <div class="screen" id="screenResolve">
+    <div class="topbar">
+      <div class="topbar-row">
+        <button class="logout-btn" id="backFromResolve">‹ Voltar</button>
+      </div>
+      <h1 class="home-title" style="font-size:28px;" id="resolveFlightTitle">Pendência</h1>
+      <p style="margin:0;font-size:13px;font-weight:500;color:var(--text-dim);">Registre o horário de chegada de cada item pendente</p>
+    </div>
+    <div class="home-cards" style="gap:14px;">
+      <div class="field-card">
+        <label for="resolveNome">Nome de quem entregou</label>
+        <input id="resolveNome" type="text" placeholder="Nome completo" autocomplete="off" style="font-size:16px;">
+      </div>
+      <div id="resolveList" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+    <div class="wiz-foot">
+      <button class="btn-primary" id="resolveSaveBtn">Salvar</button>
+    </div>
+  </div>
+
+  <!-- EDITAR REGISTRO (ADMIN) -->
+  <div class="screen" id="screenAdminEdit">
+    <div class="topbar">
+      <div class="topbar-row">
+        <button class="logout-btn" id="backFromAdminEdit">‹ Voltar</button>
+        <span class="admin-tag">ADMIN</span>
+      </div>
+      <h1 class="home-title" style="font-size:28px;">Editar registro</h1>
+    </div>
+    <div class="home-cards" id="adminEditBody" style="gap:14px;"></div>
+    <div class="wiz-foot">
+      <button class="btn-primary" id="adminEditSaveBtn">Salvar edição</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toastHost"></div>
+
+<script>
+(() => {
+  // ---------- Auth ----------
+  // Login feito pelo Firebase Authentication (e-mail/senha). A tela continua
+  // pedindo só o usuário ("alex"); o domínio abaixo é completado automaticamente.
+  // O papel (admin/team) vem do documento usuarios/{uid} no Firestore, que só
+  // pode ser alterado pelo console do Firebase — nunca pelo app.
+  const LOGIN_DOMAIN = 'conferencia-latam.app';
+  let currentUser = null;
+
+  // escapa texto antes de ir pra dentro de innerHTML (evita XSS com dados digitados)
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  const loginUserEl = document.getElementById('loginUser');
+  const loginPassEl = document.getElementById('loginPass');
+  const loginErrorEl = document.getElementById('loginError');
+  const loginBtnEl = document.getElementById('loginBtn');
+  const passToggle = document.getElementById('loginPassToggle');
+  const eyeOpen = document.getElementById('eyeOpen');
+  const eyeOff = document.getElementById('eyeOff');
+
+  passToggle.addEventListener('click', () => {
+    const isHidden = loginPassEl.type === 'password';
+    loginPassEl.type = isHidden ? 'text' : 'password';
+    eyeOpen.style.display = isHidden ? 'none' : '';
+    eyeOff.style.display = isHidden ? '' : 'none';
+  });
+
+  async function doLogin() {
+    const u = loginUserEl.value.trim().toLowerCase();
+    const p = loginPassEl.value;
+    if (!u || !p) { loginErrorEl.textContent = 'Informe usuário e senha.'; return; }
+    if (!auth) { loginErrorEl.textContent = 'Sem conexão com o servidor.'; return; }
+    loginErrorEl.textContent = '';
+    loginBtnEl.disabled = true;
+    try {
+      const email = u.includes('@') ? u : `${u}@${LOGIN_DOMAIN}`;
+      await auth.signInWithEmailAndPassword(email, p);
+      loginPassEl.value = '';
+      // onAuthStateChanged cuida do resto
+    } catch (e) {
+      const code = e && e.code || '';
+      loginErrorEl.textContent = code === 'auth/network-request-failed'
+        ? 'Sem conexão. Tente de novo.'
+        : code === 'auth/too-many-requests'
+          ? 'Muitas tentativas. Aguarde alguns minutos.'
+          : 'Usuário ou senha incorretos.';
+    } finally {
+      loginBtnEl.disabled = false;
+    }
+  }
+  loginBtnEl.addEventListener('click', doLogin);
+  loginPassEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  loginUserEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); loginPassEl.focus(); } });
+
+  let uploadQueueLoopStarted = false;
+  function afterLogin() {
+    document.body.classList.add('authed');
+    const isAdmin = currentUser.role === 'admin';
+    document.getElementById('histCardAdminTag').classList.toggle('hidden', !isAdmin);
+    document.getElementById('histCardSub').textContent = isAdmin ? 'Todos os checklists enviados' : 'Consultar voos já enviados';
+    refreshPendCount();
+    showScreen('screenHome');
+    refreshUploadQueueBanner();
+    processUploadQueue();
+    if (!uploadQueueLoopStarted) {
+      uploadQueueLoopStarted = true;
+      setInterval(processUploadQueue, 30000);
+      window.addEventListener('online', processUploadQueue);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) processUploadQueue(); });
+    }
+  }
+
+  // remove o login antigo (inseguro) que ficava salvo no aparelho
+  try { localStorage.removeItem('conf_auth'); } catch (e) {}
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    if (auth) auth.signOut();
+  });
+
+  // ---------- Screens ----------
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ---------- Firebase ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPCJNC0LXFOHbtLdoaF_I1wfN89Nh7org",
+    authDomain: "conferencia-latam.firebaseapp.com",
+    projectId: "conferencia-latam",
+    storageBucket: "conferencia-latam.firebasestorage.app",
+    messagingSenderId: "420670376733",
+    appId: "1:420670376733:web:5333b9b5d5342cc8d5eff4"
+  };
+  const COLLECTION = 'registros';
+  let db = null;
+  let auth = null;
+  let cachedDocs = [];
+  let unsubscribeDocs = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+  } catch (e) { db = null; auth = null; }
+
+  // só escuta os registros depois do login — sem usuário, o Firestore recusa a leitura.
+  // Em tempo real fica só o que está em aberto (rascunhos e pendências), que é pouco;
+  // o histórico completo é buscado por período quando a tela de Histórico abre.
+  function startDocsListener() {
+    if (!db || unsubscribeDocs) return;
+    unsubscribeDocs = db.collection(COLLECTION).where('status', 'in', ['rascunho', 'pendente']).onSnapshot(snap => {
+      cachedDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => ((getDocDate(b) || 0) - (getDocDate(a) || 0)));
+      refreshPendCount();
+      if (document.getElementById('screenPendentes').classList.contains('active')) renderPendentes();
+    }, (err) => {
+      console.error('Firestore onSnapshot error:', err);
+      toast('Erro ao sincronizar (' + (err && err.code || 'sem conexão') + ')');
+    });
+  }
+
+  function stopDocsListener() {
+    if (unsubscribeDocs) { unsubscribeDocs(); unsubscribeDocs = null; }
+    cachedDocs = [];
+    histDocs = []; histCursor = null; histHasMore = false;
+    trendDocs = []; trendLoadedAt = 0;
+  }
+
+  // o perfil fica guardado no aparelho só pra abrir o app com sinal fraco;
+  // quem garante a permissão de verdade são as regras do Firestore
+  const PROFILE_CACHE_KEY = 'conf_profile';
+
+  async function loadProfile(fbUser) {
+    let snap;
+    try {
+      snap = await db.collection('usuarios').doc(fbUser.uid).get();
+    } catch (e) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || 'null');
+        if (cached && cached.uid === fbUser.uid) return cached;
+      } catch (e2) {}
+      throw e;
+    }
+    if (!snap.exists) return null;
+    const data = snap.data() || {};
+    const profile = {
+      uid: fbUser.uid,
+      user: data.user || (fbUser.email || '').split('@')[0],
+      role: data.role === 'admin' ? 'admin' : 'team'
+    };
+    try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch (e) {}
+    return profile;
+  }
+
+  if (auth) {
+    auth.onAuthStateChanged(async (fbUser) => {
+      if (!fbUser) {
+        currentUser = null;
+        try { localStorage.removeItem(PROFILE_CACHE_KEY); } catch (e) {}
+        stopDocsListener();
+        document.body.classList.remove('authed');
+        return;
+      }
+      try {
+        const profile = await loadProfile(fbUser);
+        if (!profile) {
+          loginErrorEl.textContent = 'Usuário sem permissão de acesso. Fale com o administrador.';
+          await auth.signOut();
+          return;
+        }
+        currentUser = profile;
+        startDocsListener();
+        afterLogin();
+      } catch (e) {
+        console.error('loadProfile error:', e);
+        loginErrorEl.textContent = 'Não foi possível carregar seu perfil (' + (e && e.code || 'erro') + ').';
+        await auth.signOut();
+      }
+    });
+  }
+
+  function refreshPendCount() {
+    const n = cachedDocs.filter(d => d.status !== 'completo').length;
+    document.getElementById('pendCount').textContent = String(n);
+  }
+
+  // ---------- Cloudinary ----------
+  // envio ASSINADO: a assinatura vem da function /sign-upload (Netlify), que só
+  // responde pra usuário logado. Sem login, o Cloudinary recusa a foto.
+  const CLOUDINARY_CLOUD_NAME = 's5bd8nc1';
+  // mesmo prazo de RETENTION_DAYS em netlify/functions/cleanup-photos.js
+  const PHOTO_RETENTION_DAYS = 20;
+  const SIGN_UPLOAD_URL = '/.netlify/functions/sign-upload';
+
+  async function getUploadSignature() {
+    const fbUser = auth && auth.currentUser;
+    if (!fbUser) throw new Error('não logado');
+    const idToken = await fbUser.getIdToken();
+    const res = await fetch(SIGN_UPLOAD_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + idToken } });
+    if (!res.ok) throw new Error('assinatura recusada (' + res.status + ')');
+    return res.json();
+  }
+
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = (e) => { img.src = e.target.result; };
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+    ]);
+  }
+
+  async function uploadToCloudinary(blob) {
+    const sig = await getUploadSignature();
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('api_key', sig.apiKey);
+    fd.append('timestamp', sig.timestamp);
+    fd.append('folder', sig.folder);
+    fd.append('signature', sig.signature);
+    return fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd })
+      .then(res => { if (!res.ok) throw new Error('upload failed'); return res.json(); })
+      .then(data => data.secure_url);
+  }
+
+  // tenta enviar uma foto algumas vezes, com espera crescente entre tentativas —
+  // cobre quedas curtas de sinal (comum na pista/hangar) sem precisar de ação manual
+  async function uploadWithRetries(blob, attempts) {
+    attempts = attempts || 4;
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await withTimeout(uploadToCloudinary(blob), 25000);
+      } catch (e) {
+        lastErr = e;
+        if (i < attempts - 1) await new Promise(r => setTimeout(r, 1500 * Math.pow(2, i)));
+      }
+    }
+    throw lastErr;
+  }
+
+  // lista de "slots" de foto do wiz atual, cada um com o caminho onde a URL
+  // enviada deve ser gravada dentro do documento SERIALIZADO (mesmo formato
+  // que serializeWiz produz) — usado tanto pro envio normal quanto pra
+  // reconstruir o patch no Firestore caso precise reenviar depois.
+  function collectPhotoSlots() {
+    const slots = [];
+    CATS.forEach(c => {
+      (wiz.categories[c.key].items || []).forEach((it, i) => slots.push({ state: it, topKey: 'categories', docPath: [c.key, 'items', i, 'uploadedUrl'] }));
+    });
+    ['spml', 'preorder', 'fornosBC', 'fornosYC', 'remanentes', 'maletas'].forEach(k => {
+      (wiz[k].photos || []).forEach((p, i) => slots.push({ state: p, topKey: k, docPath: ['photos', i, 'uploadedUrl'] }));
+    });
+    TROLLEY_CLASSES.forEach(cls => {
+      TROLLEY_MEALS.forEach(m => {
+        const st = wiz[cls.key][m.key];
+        slots.push({ state: st.frente, topKey: cls.key, docPath: [m.key, 'frenteUrl'] });
+        slots.push({ state: st.verso, topKey: cls.key, docPath: [m.key, 'versoUrl'] });
+      });
+    });
+    slots.push({ state: wiz.crew.frente, topKey: 'crew', docPath: ['frenteUrl'] });
+    slots.push({ state: wiz.crew.verso, topKey: 'crew', docPath: ['versoUrl'] });
+    slots.push({ state: wiz.apoio, topKey: 'apoio', docPath: ['uploadedUrl'] });
+    return slots;
+  }
+
+  // envia todas as fotos ainda não enviadas do wiz atual, com retentativas;
+  // devolve as que mesmo assim falharam (pra entrar na fila de reenvio)
+  async function uploadAllPending() {
+    const slots = collectPhotoSlots().filter(s => s.state && s.state.file && !s.state.uploadedUrl);
+    const failed = [];
+    await Promise.all(slots.map(async (slot) => {
+      try {
+        slot.state.uploadedUrl = await uploadWithRetries(slot.state.file, 4);
+      } catch (e) {
+        failed.push({ topKey: slot.topKey, docPath: slot.docPath, blob: slot.state.file });
+      }
+    }));
+    return failed;
+  }
+
+  // ---------- Fila de reenvio automático (fotos que falharam mesmo após as retentativas) ----------
+  const QUEUE_DB_NAME = 'conferenciaUploadQueue';
+  const QUEUE_STORE = 'pending';
+
+  function openQueueDB() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) { reject(new Error('indexedDB indisponível')); return; }
+      const req = indexedDB.open(QUEUE_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const qdb = req.result;
+        if (!qdb.objectStoreNames.contains(QUEUE_STORE)) qdb.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function queueAdd(item) {
+    try {
+      const qdb = await openQueueDB();
+      return await new Promise((resolve, reject) => {
+        const tx = qdb.transaction(QUEUE_STORE, 'readwrite');
+        const req = tx.objectStore(QUEUE_STORE).add(item);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) { console.error('queueAdd error:', e); }
+  }
+
+  async function queueGetAll() {
+    try {
+      const qdb = await openQueueDB();
+      return await new Promise((resolve, reject) => {
+        const tx = qdb.transaction(QUEUE_STORE, 'readonly');
+        const req = tx.objectStore(QUEUE_STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) { console.error('queueGetAll error:', e); return []; }
+  }
+
+  async function queueDelete(id) {
+    try {
+      const qdb = await openQueueDB();
+      await new Promise((resolve, reject) => {
+        const tx = qdb.transaction(QUEUE_STORE, 'readwrite');
+        tx.objectStore(QUEUE_STORE).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) { console.error('queueDelete error:', e); }
+  }
+
+  async function queueUpdate(id, patch) {
+    try {
+      const qdb = await openQueueDB();
+      await new Promise((resolve, reject) => {
+        const tx = qdb.transaction(QUEUE_STORE, 'readwrite');
+        const store = tx.objectStore(QUEUE_STORE);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const item = getReq.result;
+          if (item) { Object.assign(item, patch); store.put(item); }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) { console.error('queueUpdate error:', e); }
+  }
+
+  function setDeep(obj, pathArr, value) {
+    let node = obj;
+    for (let i = 0; i < pathArr.length - 1; i++) {
+      const key = pathArr[i];
+      if (node[key] === undefined || node[key] === null) node[key] = (typeof pathArr[i + 1] === 'number') ? [] : {};
+      node = node[key];
+    }
+    node[pathArr[pathArr.length - 1]] = value;
+  }
+
+  // depois de salvar um registro, qualquer foto que não conseguiu subir (mesmo
+  // com as retentativas) entra aqui pra ser reenviada sozinha mais tarde —
+  // sobrevive a fechar o app, porque fica salva no IndexedDB do aparelho
+  async function enqueueFailedUploads(docId, failed) {
+    if (!failed || !failed.length) return;
+    for (const f of failed) {
+      await queueAdd({ docId, topKey: f.topKey, docPath: f.docPath, blob: f.blob, createdAt: Date.now(), attempts: 0 });
+    }
+    refreshUploadQueueBanner();
+    processUploadQueue();
+  }
+
+  async function refreshUploadQueueBanner() {
+    const banner = document.getElementById('uploadQueueBanner');
+    const text = document.getElementById('uploadQueueBannerText');
+    if (!banner) return;
+    const items = await queueGetAll();
+    if (items.length) {
+      banner.classList.remove('hidden');
+      text.textContent = items.length === 1
+        ? '1 foto aguardando reenvio (sinal fraco no momento do envio) — tentando de novo automaticamente…'
+        : `${items.length} fotos aguardando reenvio (sinal fraco no momento do envio) — tentando de novo automaticamente…`;
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
+  let uploadQueueBusy = false;
+  async function processUploadQueue() {
+    if (uploadQueueBusy || !db || !currentUser || !navigator.onLine) return;
+    uploadQueueBusy = true;
+    try {
+      const items = await queueGetAll();
+      for (const item of items) {
+        try {
+          const url = await uploadWithRetries(item.blob, 1);
+          const docRef = db.collection(COLLECTION).doc(item.docId);
+          const snap = await docRef.get();
+          if (!snap.exists) { await queueDelete(item.id); continue; }
+          const data = snap.data();
+          let node = data[item.topKey];
+          if (node === undefined || node === null) node = (typeof item.docPath[0] === 'number') ? [] : {};
+          setDeep(node, item.docPath, url);
+          await docRef.update({ [item.topKey]: node });
+          await queueDelete(item.id);
+        } catch (e) {
+          await queueUpdate(item.id, { attempts: (item.attempts || 0) + 1, lastError: String((e && e.message) || e) });
+        }
+      }
+    } finally {
+      uploadQueueBusy = false;
+      refreshUploadQueueBanner();
+    }
+  }
+
+  function wirePhoto(inputEl, targetEl, stateObj, tileMode) {
+    inputEl.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      const blob = await compressImage(file, 1400, 0.72);
+      stateObj.file = blob;
+      stateObj.previewUrl = URL.createObjectURL(blob);
+      stateObj.uploadedUrl = null;
+      if (tileMode) {
+        targetEl.classList.add('has-img');
+        targetEl.style.backgroundImage = '';
+        let img = targetEl.querySelector('img');
+        if (!img) { img = document.createElement('img'); targetEl.prepend(img); }
+        img.src = stateObj.previewUrl;
+      } else {
+        targetEl.src = stateObj.previewUrl;
+        targetEl.classList.remove('hidden');
+      }
+    });
+  }
+
+  // ---------- Toast ----------
+  function toast(msg) {
+    const host = document.getElementById('toastHost');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    host.appendChild(el);
+    setTimeout(() => el.remove(), 2600);
+  }
+
+  // ---------- Wizard state ----------
+  const CATS = [
+    { key: 'equipamento', label: 'Equipamento' },
+    { key: 'producao', label: 'Produção' },
+    { key: 'bonded', label: 'Bonded' }
+  ];
+
+  // trolleys de Business/Econômica levam refeições que variam por voo (opcionais),
+  // cada uma registrada com foto de frente e de verso
+  const TROLLEY_CLASSES = [
+    { key: 'business', label: 'Business' },
+    { key: 'economica', label: 'Econômica' }
+  ];
+  const TROLLEY_MEALS = [
+    { key: 'jantar', label: 'Jantar' },
+    { key: 'cafe', label: 'Café' },
+    { key: 'lanche', label: 'Lanche' }
+  ];
+
+  function freshMealTrolley() {
+    const meals = {};
+    TROLLEY_MEALS.forEach(m => {
+      meals[m.key] = { na: false, frente: { file: null, previewUrl: null, uploadedUrl: null }, verso: { file: null, previewUrl: null, uploadedUrl: null } };
+    });
+    return meals;
+  }
+
+  function freshPendItem() {
+    return { desc: '', qty: '', status: '', horario: '', file: null, previewUrl: null, uploadedUrl: null };
+  }
+
+  function freshWiz() {
+    const cats = {};
+    CATS.forEach(c => { cats[c.key] = { pendencia: false, items: [] }; });
+    return {
+      docId: null,
+      flightNumber: '', expedidorNome: '', execQty: '', econQty: '', crewTT: '', crewTC: '',
+      categories: cats,
+      spml: { desc: '', na: false, photos: [] },
+      preorder: { desc: '', na: false, photos: [] },
+      fornosBC: { photos: [], na: false },
+      fornosYC: { photos: [], na: false },
+      remanentes: { photos: [], na: false },
+      maletas: { photos: [], na: false },
+      business: freshMealTrolley(),
+      economica: freshMealTrolley(),
+      crew: { frente: { file: null, previewUrl: null, uploadedUrl: null }, verso: { file: null, previewUrl: null, uploadedUrl: null } },
+      apoio: { na: false, file: null, previewUrl: null, uploadedUrl: null },
+      step: 1,
+      startedBy: null, startedAt: null
+    };
+  }
+  let wiz = freshWiz();
+
+  document.getElementById('btnNovoChecklist').addEventListener('click', () => {
+    wiz = freshWiz();
+    wiz.startedBy = currentUser.user;
+    wiz.startedAt = new Date().toISOString();
+    wiz.step = 1;
+    renderWizardStep();
+    showScreen('screenWizard');
+  });
+
+  function resumeDraft(doc) {
+    wiz = freshWiz();
+    Object.assign(wiz, doc);
+    wiz.docId = doc.id;
+    wiz.step = doc.step || 1;
+    // normaliza as categorias pro formato de lista (`items`), inclusive rascunhos
+    // salvos antes dessa mudança, que guardavam um único item achatado
+    CATS.forEach(c => {
+      const items = getCatItems(wiz.categories[c.key]).map(it => Object.assign(freshPendItem(), it));
+      wiz.categories[c.key] = { pendencia: items.length > 0, items };
+    });
+    // SPML/Pré-orders: rascunhos antigos tinham uma foto só (uploadedUrl)
+    ['spml', 'preorder'].forEach(k => {
+      const st = doc[k] || {};
+      wiz[k] = { desc: st.desc || '', na: !!st.na, photos: getSpecialPhotos(st).map(p => ({ file: null, previewUrl: null, uploadedUrl: p.uploadedUrl || null })) };
+    });
+    renderWizardStep();
+    showScreen('screenWizard');
+  }
+
+  // confirmação própria do app (em vez do confirm() nativo do navegador, que se
+  // comporta de forma inconsistente em alguns PWAs instalados)
+  function customConfirm(message, opts) {
+    opts = opts || {};
+    const confirmLabel = opts.confirmLabel || 'Sim, sair';
+    const cancelLabel = opts.cancelLabel || 'Cancelar';
+    return new Promise((resolve) => {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'sheet-backdrop';
+      backdrop.innerHTML = `
+        <div class="sheet" style="gap:16px;">
+          <p style="margin:0;font-size:15px;font-weight:600;line-height:1.4;">${message}</p>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-ghost" style="flex:1;" id="customConfirmCancel">${cancelLabel}</button>
+            <button class="btn-primary" style="flex:1;background:var(--pink-mid);" id="customConfirmOk">${confirmLabel}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(backdrop);
+      const cleanup = (result) => { backdrop.remove(); resolve(result); };
+      backdrop.querySelector('#customConfirmCancel').addEventListener('click', () => cleanup(false));
+      backdrop.querySelector('#customConfirmOk').addEventListener('click', () => cleanup(true));
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cleanup(false); });
+    });
+  }
+
+  document.getElementById('wizClose').addEventListener('click', async () => {
+    const ok = await customConfirm('Sair sem salvar essa conferência? O que já foi preenchido vai se perder.');
+    if (ok) showScreen('screenHome');
+  });
+
+  const wizBody = document.getElementById('wizBody');
+  const wizBadge = document.getElementById('wizBadge');
+  const wizTitle = document.getElementById('wizTitle');
+  const wizSub = document.getElementById('wizSub');
+  const wizCount = document.getElementById('wizCount');
+  const wizNext = document.getElementById('wizNext');
+  const wizBack = document.getElementById('wizBack');
+
+  const STEP_META = {
+    1: { title: 'Novo registro', sub: 'Número do voo e quantidade a bordo' },
+    2: { title: 'Categorias', sub: 'Equipamento, Produção e Bonded' },
+    3: { title: 'Especiais', sub: 'SPML e Pré-orders' },
+    4: { title: 'Quantidade', sub: 'Conferência + fotos dos fornos BC/YC, remanentes e maletas' },
+    5: { title: 'Fotos das classes', sub: 'Trolleys de Business e Econômica (frente e verso) + Crew' }
+  };
+
+  function renderWizardStep() {
+    const meta = STEP_META[wiz.step];
+    wizBadge.textContent = wiz.step;
+    wizTitle.textContent = meta.title;
+    wizSub.textContent = meta.sub;
+    wizCount.textContent = wiz.step + '/5';
+    wizBack.classList.toggle('hidden', wiz.step === 1);
+    wizNext.innerHTML = wiz.step === 5
+      ? 'Enviar checklist <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+      : 'Continuar <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+
+    if (wiz.step === 1) renderStep1();
+    else if (wiz.step === 2) renderStep2();
+    else if (wiz.step === 3) renderStep3();
+    else if (wiz.step === 4) renderStep4();
+    else if (wiz.step === 5) renderStep5();
+  }
+
+  function renderStep1() {
+    wizBody.innerHTML = `
+      <div class="field-card">
+        <label for="fFlight">Número do voo</label>
+        <input id="fFlight" type="text" inputmode="numeric" placeholder="Ex.: LA 3350" autocomplete="off" autocapitalize="characters" value="${esc(wiz.flightNumber || 'LA ')}">
+      </div>
+      <div class="field-card">
+        <label for="fExpedidor">Nome do expedidor</label>
+        <input id="fExpedidor" type="text" placeholder="Seu nome completo" autocomplete="off" value="${esc(wiz.expedidorNome)}" style="font-size:16px;">
+      </div>
+      <div>
+        <p class="mini-label" style="margin-bottom:10px;">Quantidade a bordo</p>
+        <div class="qty-grid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="qty-box"><label>Executiva</label><input id="fExec" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(wiz.execQty)}"></div>
+          <div class="qty-box"><label>Econômica</label><input id="fEcon" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(wiz.econQty)}"></div>
+          <div class="qty-box"><label>Tripulação Técnica (TT)</label><input id="fCrewTT" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(wiz.crewTT)}"></div>
+          <div class="qty-box"><label>Tripulação Comercial (TC)</label><input id="fCrewTC" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(wiz.crewTC)}"></div>
+        </div>
+      </div>`;
+    const fFlight = document.getElementById('fFlight');
+    fFlight.addEventListener('input', (e) => {
+      const start = e.target.selectionStart;
+      const upper = e.target.value.toUpperCase();
+      if (upper !== e.target.value) { e.target.value = upper; e.target.setSelectionRange(start, start); }
+    });
+    // place cursor at the end (after "LA ") when the field is freshly opened
+    if (!wiz.flightNumber) { fFlight.setSelectionRange(fFlight.value.length, fFlight.value.length); }
+
+    // Enter jumps field-to-field, same as the login screen; Enter on the last one submits the step
+    const chain = ['fFlight', 'fExpedidor', 'fExec', 'fEcon', 'fCrewTT', 'fCrewTC'];
+    chain.forEach((id, i) => {
+      document.getElementById(id).addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const nextId = chain[i + 1];
+        if (nextId) document.getElementById(nextId).focus();
+        else wizNext.click();
+      });
+    });
+  }
+
+  function renderStep2() {
+    wizBody.innerHTML = CATS.map(c => {
+      const st = wiz.categories[c.key];
+      const items = st.items;
+      return `
+      <div class="cat-card ${items.length ? 'has-pend' : ''}" data-cat="${c.key}">
+        <span class="cat-name">${c.label}</span>
+        <div class="toggle-row">
+          <button type="button" class="toggle-btn ${!items.length ? 'active' : ''}" data-act="setPend" data-val="0">Sem pendência</button>
+          <button type="button" class="toggle-btn ${items.length ? 'active' : ''}" data-act="setPend" data-val="1">Pendência</button>
+        </div>
+        ${items.length ? `
+        <div class="cat-extra" style="gap:16px;">
+          ${items.map((it, idx) => {
+            const needsChoice = !it.status;
+            const photoId = `${c.key}-${idx}-photo`;
+            return `
+            <div class="pend-item-card" data-idx="${idx}" style="display:flex; flex-direction:column; gap:14px; background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:16px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; font-weight:800; letter-spacing:.5px; color:var(--text-mute); text-transform:uppercase;">Item ${idx + 1}</span>
+                ${items.length > 1 ? `<button type="button" data-act="removeItem" style="background:none; border:none; color:var(--pink-mid); font-size:12px; font-weight:700; padding:4px;">Remover</button>` : ''}
+              </div>
+              <div>
+                <p class="mini-label" style="margin-bottom:6px;">Descreva a pendência</p>
+                <textarea class="mini-textarea" data-act="desc">${esc(it.desc)}</textarea>
+              </div>
+              <div>
+                <p class="mini-label" style="margin-bottom:6px;">Quantidade</p>
+                <input class="mini-input numeric-input" style="width:100px;" type="number" inputmode="numeric" pattern="[0-9]*" data-act="qty" value="${esc(it.qty)}">
+              </div>
+              <div>
+                <label for="${photoId}" class="photo-btn" style="height:44px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  ${it.previewUrl || it.uploadedUrl ? 'Trocar foto' : 'Foto evidência'}
+                </label>
+                <input id="${photoId}" type="file" accept="image/*" capture="environment" class="hidden">
+                <img class="photo-thumb ${it.previewUrl || it.uploadedUrl ? '' : 'hidden'}" id="${photoId}-thumb" src="${esc(it.previewUrl || it.uploadedUrl)}" style="margin-top:8px;">
+              </div>
+              <div>
+                <p class="mini-label" style="margin-bottom:6px;">Situação</p>
+                <div class="toggle-row">
+                  <button type="button" class="toggle-btn ${it.status === 'chegou' ? 'active' : ''}" data-act="setStatus" data-val="chegou">Chegou · horário</button>
+                  <button type="button" class="toggle-btn ${it.status === 'pendente' ? 'active warn' : ''}" data-act="setStatus" data-val="pendente">Ainda pendente</button>
+                </div>
+                ${needsChoice ? `<p style="margin:6px 0 0 0;font-size:11px;font-weight:600;color:var(--pink-mid);">Escolha uma opção pra continuar</p>` : ''}
+              </div>
+              ${it.status === 'chegou' ? `
+              <div>
+                <p class="mini-label" style="margin-bottom:6px;">Horário real de entrega</p>
+                <input class="mini-input" type="time" data-act="horario" value="${esc(it.horario)}">
+                ${!it.horario ? `<p style="margin:6px 0 0 0;font-size:11px;font-weight:600;color:var(--pink-mid);">Sem horário, esse voo vai pra aba Pendentes</p>` : ''}
+              </div>` : it.status === 'pendente' ? `
+              <div class="warn-note">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <span>Marcando "Ainda pendente", esse voo vai para a aba Pendentes até outro expedidor completar.</span>
+              </div>` : ''}
+            </div>`;
+          }).join('')}
+          <button type="button" data-act="addItem" class="pendente-link" style="align-self:flex-start; text-decoration:none; display:flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Adicionar outro item
+          </button>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+
+    wizBody.querySelectorAll('.cat-card').forEach(card => {
+      const key = card.dataset.cat;
+      const st = wiz.categories[key];
+      card.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-act]');
+        if (!btn) return;
+        if (btn.dataset.act === 'setPend') {
+          if (btn.dataset.val === '1') { if (!st.items.length) st.items.push(freshPendItem()); }
+          else { st.items = []; }
+          renderStep2();
+          return;
+        }
+        if (btn.dataset.act === 'addItem') { st.items.push(freshPendItem()); renderStep2(); return; }
+        if (btn.dataset.act === 'removeItem') {
+          const idx = Number(e.target.closest('[data-idx]').dataset.idx);
+          st.items.splice(idx, 1);
+          renderStep2();
+          return;
+        }
+        if (btn.dataset.act === 'setStatus') {
+          const idx = Number(e.target.closest('[data-idx]').dataset.idx);
+          st.items[idx].status = btn.dataset.val;
+          renderStep2();
+        }
+      });
+      card.querySelectorAll('[data-idx]').forEach(itemCard => {
+        const idx = Number(itemCard.dataset.idx);
+        const it = st.items[idx];
+        const desc = itemCard.querySelector('[data-act="desc"]'); if (desc) desc.addEventListener('input', e => it.desc = e.target.value);
+        const qty = itemCard.querySelector('[data-act="qty"]'); if (qty) qty.addEventListener('input', e => it.qty = e.target.value);
+        const hor = itemCard.querySelector('[data-act="horario"]'); if (hor) hor.addEventListener('input', e => { it.horario = e.target.value; renderStep2(); });
+        const photoInput = itemCard.querySelector(`#${key}-${idx}-photo`);
+        const photoThumb = itemCard.querySelector(`#${key}-${idx}-photo-thumb`);
+        if (photoInput) wirePhoto(photoInput, photoThumb, it, false);
+      });
+    });
+  }
+
+  function step2HasUnresolvedChoice() {
+    return CATS.some(c => wiz.categories[c.key].items.some(it => !it.status));
+  }
+
+  function photoFieldHtml(id, label, stateObj, tall) {
+    return `
+      <div class="photo-field">
+        <span class="name">${label}</span>
+        <label for="${id}" class="photo-btn ${tall ? 'tall' : ''}">
+          <svg width="${tall ? 26 : 18}" height="${tall ? 26 : 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ${stateObj.previewUrl ? 'Trocar foto' : 'Foto evidência'}
+        </label>
+        <input id="${id}" type="file" accept="image/*" capture="environment" class="hidden">
+        <img class="photo-thumb ${stateObj.previewUrl ? '' : 'hidden'}" id="${id}-thumb" src="${stateObj.previewUrl || ''}">
+      </div>`;
+  }
+
+  // SPML e Pré-orders aceitam várias fotos (pode ter mais de um especial no voo)
+  function renderStep3() {
+    wizBody.innerHTML = renderMultiPhotoField('spml', 'SPML', wiz.spml, true, true) + renderMultiPhotoField('preorder', 'Pré-orders', wiz.preorder, true, true);
+    ['spml', 'preorder'].forEach(key => {
+      wireMultiPhotoField(key, wiz[key], renderStep3);
+      const desc = document.getElementById(`${key}Desc`);
+      if (desc) desc.addEventListener('input', e => wiz[key].desc = e.target.value);
+    });
+  }
+
+  function renderMultiPhotoField(key, label, stateObj, optional, withDesc) {
+    const photos = stateObj.photos || [];
+    return `
+      <div class="photo-field" data-multi-field="${key}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span class="name">${label}</span>
+          ${optional ? `<button type="button" class="toggle-btn ${stateObj.na ? 'active warn' : ''}" data-act="toggleNa" style="flex:none;height:32px;padding:0 12px;">${stateObj.na ? 'Não se aplica' : 'Marcar N/A'}</button>` : ''}
+        </div>
+        ${optional && stateObj.na ? `<p style="margin:0;font-size:11.5px;font-weight:500;color:var(--text-faint);">Esse voo não tem ${label.toLowerCase()}.</p>` : `
+        ${withDesc ? `<textarea class="mini-textarea" id="${key}Desc">${esc(stateObj.desc)}</textarea>` : ''}
+        <div class="photo-tile-grid" id="${key}-grid">
+          ${photos.map((p, i) => `
+            <div class="photo-tile has-img" data-photo-idx="${i}">
+              <img src="${esc(p.previewUrl || p.uploadedUrl)}">
+              <button type="button" class="photo-tile-remove" data-remove-idx="${i}">✕</button>
+            </div>`).join('')}
+          <label for="${key}-add" class="photo-tile">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span class="lbl">Adicionar foto</span>
+          </label>
+          <input id="${key}-add" type="file" accept="image/*" capture="environment" class="hidden">
+        </div>`}
+      </div>`;
+  }
+
+  function wireMultiPhotoField(key, stateObj, rerender) {
+    const field = document.querySelector(`[data-multi-field="${key}"]`);
+    if (!field) return;
+    const naBtn = field.querySelector('[data-act="toggleNa"]');
+    if (naBtn) naBtn.addEventListener('click', () => { stateObj.na = !stateObj.na; rerender(); });
+    const addInput = document.getElementById(`${key}-add`);
+    if (addInput) addInput.addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      ev.target.value = '';
+      if (!file) return;
+      const blob = await compressImage(file, 1400, 0.72);
+      stateObj.photos = stateObj.photos || [];
+      stateObj.photos.push({ file: blob, previewUrl: URL.createObjectURL(blob), uploadedUrl: null });
+      rerender();
+    });
+    field.querySelectorAll('[data-remove-idx]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        stateObj.photos.splice(Number(btn.dataset.removeIdx), 1);
+        rerender();
+      });
+    });
+  }
+
+  function renderStep4() {
+    wizBody.innerHTML = `
+      <div style="display:flex;gap:10px;">
+        <div class="qty-box" style="flex:1;"><span style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--pink-mid);">${esc(wiz.execQty || '—')}</span><label>Executiva</label></div>
+        <div class="qty-box" style="flex:1;"><span style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--pink-mid);">${esc(wiz.econQty || '—')}</span><label>Econômica</label></div>
+      </div>
+      <p style="margin:0;font-size:11px;font-weight:500;color:var(--text-faint);">Valores da Etapa 1, só pra conferência</p>
+      ${renderMultiPhotoField('fornosBC', 'Fornos BC', wiz.fornosBC, false)}
+      ${renderMultiPhotoField('fornosYC', 'Fornos YC', wiz.fornosYC, false)}
+      ${renderMultiPhotoField('remanentes', 'Remanentes', wiz.remanentes, true)}
+      ${renderMultiPhotoField('maletas', 'Maletas', wiz.maletas, true)}`;
+    wireMultiPhotoField('fornosBC', wiz.fornosBC, renderStep4);
+    wireMultiPhotoField('fornosYC', wiz.fornosYC, renderStep4);
+    wireMultiPhotoField('remanentes', wiz.remanentes, renderStep4);
+    wireMultiPhotoField('maletas', wiz.maletas, renderStep4);
+  }
+
+  function classTile(id, label, stateObj) {
+    return `
+      <label for="${id}" class="photo-tile ${stateObj.previewUrl ? 'has-img' : ''}">
+        ${stateObj.previewUrl ? `<img src="${stateObj.previewUrl}">` : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`}
+        <span class="lbl">${label}</span>
+      </label>
+      <input id="${id}" type="file" accept="image/*" capture="environment" class="hidden">`;
+  }
+
+  function sideTile(id, label, stateObj) {
+    return `
+      <label for="${id}" class="photo-tile ${stateObj.previewUrl ? 'has-img' : ''}">
+        ${stateObj.previewUrl ? `<img src="${stateObj.previewUrl}">` : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`}
+        <span class="lbl">${label}</span>
+      </label>
+      <input id="${id}" type="file" accept="image/*" capture="environment" class="hidden">`;
+  }
+
+  function mealSideTile(classKey, mealKey, side, label, stateObj) {
+    return sideTile(`${classKey}-${mealKey}-${side}`, label, stateObj);
+  }
+
+  function renderOptionalPhotoTile(key, label, stateObj) {
+    return `
+      <div class="photo-field" data-opt-field="${key}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span class="name">${label}</span>
+          <button type="button" class="toggle-btn ${stateObj.na ? 'active warn' : ''}" data-act="toggleOptNa" style="flex:none;height:32px;padding:0 12px;">${stateObj.na ? 'Não se aplica' : 'Marcar N/A'}</button>
+        </div>
+        ${stateObj.na ? `<p style="margin:0;font-size:11.5px;font-weight:500;color:var(--text-faint);">Esse voo não tem ${label.toLowerCase()}.</p>` : `
+        <label for="${key}Photo" class="photo-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ${stateObj.previewUrl ? 'Trocar foto' : 'Foto evidência'}
+        </label>
+        <input id="${key}Photo" type="file" accept="image/*" capture="environment" class="hidden">
+        <img class="photo-thumb ${stateObj.previewUrl ? '' : 'hidden'}" id="${key}Photo-thumb" src="${stateObj.previewUrl || ''}">`}
+      </div>`;
+  }
+
+  function wireOptionalPhotoTile(key, stateObj, rerender) {
+    const field = document.querySelector(`[data-opt-field="${key}"]`);
+    if (!field) return;
+    field.querySelector('[data-act="toggleOptNa"]').addEventListener('click', () => { stateObj.na = !stateObj.na; rerender(); });
+    const input = document.getElementById(`${key}Photo`);
+    const thumb = document.getElementById(`${key}Photo-thumb`);
+    if (input) wirePhoto(input, thumb, stateObj, false);
+  }
+
+  function renderTrolleyMealCard(classKey, meal) {
+    const st = wiz[classKey][meal.key];
+    return `
+      <div class="cat-card" data-meal-class="${classKey}" data-meal-key="${meal.key}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span class="cat-name">${meal.label}</span>
+          <button type="button" class="toggle-btn ${st.na ? 'active warn' : ''}" data-act="toggleMealNa" style="flex:none;height:32px;padding:0 12px;">${st.na ? 'Não se aplica' : 'Marcar N/A'}</button>
+        </div>
+        ${st.na ? `<p style="margin:0;font-size:11.5px;font-weight:500;color:var(--text-faint);">Esse voo não tem ${meal.label.toLowerCase()} nesse trolley.</p>` : `
+        <div class="photo-tile-grid" style="grid-template-columns:repeat(2,1fr);">
+          ${mealSideTile(classKey, meal.key, 'frente', 'Frente', st.frente)}
+          ${mealSideTile(classKey, meal.key, 'verso', 'Verso', st.verso)}
+        </div>`}
+      </div>`;
+  }
+
+  function renderStep5() {
+    wizBody.innerHTML = `
+      ${TROLLEY_CLASSES.map(cls => `
+        <div>
+          <p class="mini-label" style="margin-bottom:10px;">Trolley ${cls.label}</p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            ${TROLLEY_MEALS.map(m => renderTrolleyMealCard(cls.key, m)).join('')}
+          </div>
+        </div>`).join('')}
+      <div>
+        <p class="mini-label" style="margin-bottom:10px;">Crew</p>
+        <div class="photo-tile-grid" style="grid-template-columns:repeat(2,1fr);">
+          ${sideTile('crew-frente', 'Frente', wiz.crew.frente)}
+          ${sideTile('crew-verso', 'Verso', wiz.crew.verso)}
+        </div>
+      </div>
+      ${renderOptionalPhotoTile('apoio', 'Trolley de apoio', wiz.apoio)}`;
+
+    wizBody.querySelectorAll('[data-meal-class]').forEach(card => {
+      const classKey = card.dataset.mealClass;
+      const mealKey = card.dataset.mealKey;
+      const st = wiz[classKey][mealKey];
+      card.querySelector('[data-act="toggleMealNa"]').addEventListener('click', () => { st.na = !st.na; renderStep5(); });
+      ['frente','verso'].forEach(side => {
+        const id = `${classKey}-${mealKey}-${side}`;
+        const input = card.querySelector(`#${id}`);
+        if (!input) return;
+        const tileEl = card.querySelector(`label[for="${id}"]`);
+        wirePhoto(input, tileEl, st[side], true);
+      });
+    });
+
+    ['frente','verso'].forEach(side => {
+      const id = `crew-${side}`;
+      const input = document.getElementById(id);
+      const tileEl = document.querySelector(`label[for="${id}"]`);
+      wirePhoto(input, tileEl, wiz.crew[side], true);
+    });
+
+    wireOptionalPhotoTile('apoio', wiz.apoio, renderStep5);
+  }
+
+  function syncStep1Fields() {
+    if (wiz.step !== 1) return;
+    const fFlight = document.getElementById('fFlight');
+    if (!fFlight) return;
+    wiz.flightNumber = fFlight.value.trim();
+    wiz.expedidorNome = document.getElementById('fExpedidor').value.trim();
+    wiz.execQty = document.getElementById('fExec').value;
+    wiz.econQty = document.getElementById('fEcon').value;
+    wiz.crewTT = document.getElementById('fCrewTT').value;
+    wiz.crewTC = document.getElementById('fCrewTC').value;
+  }
+
+  // Uma categoria pode ter mais de uma pendência (é bem relativo — às vezes falta
+  // mais de um item no mesmo setor). O formato atual guarda uma lista `items`;
+  // docs antigos guardavam um único item "achatado" nos campos desc/qty/status/horario
+  // direto na categoria — getCatItems lê os dois formatos e sempre devolve uma lista.
+  function getCatItems(st) {
+    if (!st) return [];
+    if (Array.isArray(st.items)) return st.items;
+    if (st.pendencia) return [{ desc: st.desc || '', qty: st.qty || '', status: st.status || '', horario: st.horario || '', uploadedUrl: st.uploadedUrl || null }];
+    return [];
+  }
+
+  function isItemUnresolved(it) {
+    return !(it.status === 'chegou' && it.horario);
+  }
+
+  function isCatUnresolved(st) {
+    const items = getCatItems(st);
+    return items.length > 0 && items.some(isItemUnresolved);
+  }
+
+  // true se o voo teve QUALQUER pendência em algum momento, resolvida ou não —
+  // usado pra continuar mostrando esse histórico mesmo depois que o voo virou
+  // "completo", já que o objetivo do app é evidenciar atrasos de outros setores
+  function hadAnyPendencia(d) {
+    return !!(d.categories && CATS.some(c => getCatItems(d.categories[c.key]).length > 0));
+  }
+
+  wizNext.addEventListener('click', async () => {
+    if (wiz.step === 1) {
+      syncStep1Fields();
+      if (!wiz.flightNumber) { toast('Informe o número do voo'); return; }
+      if (!wiz.expedidorNome) { toast('Informe o nome do expedidor'); return; }
+    }
+    if (wiz.step === 2 && step2HasUnresolvedChoice()) {
+      toast('Escolha "Chegou" ou "Ainda pendente" nas categorias com pendência');
+      return;
+    }
+    if (wiz.step < 5) { wiz.step++; renderWizardStep(); return; }
+    await finalizeChecklist();
+  });
+
+  wizBack.addEventListener('click', () => {
+    if (wiz.step === 1) return;
+    if (wiz.step === 2) syncStep1Fields();
+    wiz.step--;
+    renderWizardStep();
+  });
+
+  document.getElementById('wizLeavePending').addEventListener('click', async () => {
+    syncStep1Fields();
+    if (!wiz.flightNumber) { toast('Informe ao menos o número do voo'); return; }
+    if (!wiz.expedidorNome) { toast('Informe o nome do expedidor'); return; }
+    await saveDraft();
+    toast(`Voo ${wiz.flightNumber} salvo em Pendentes`);
+    showScreen('screenHome');
+  });
+
+  async function saveDraft() {
+    if (!db) { toast('Sem conexão — não foi possível salvar'); return; }
+    const failed = await uploadAllPending().catch(() => []);
+    const payload = serializeWiz();
+    payload.status = 'rascunho';
+    payload.startedBy = wiz.startedBy || currentUser.user;
+    payload.startedAt = wiz.startedAt || new Date().toISOString();
+    try {
+      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      if (wiz.docId) { await db.collection(COLLECTION).doc(wiz.docId).set(payload, { merge: true }); }
+      else { const ref = await db.collection(COLLECTION).add(payload); wiz.docId = ref.id; }
+      if (failed.length) {
+        await enqueueFailedUploads(wiz.docId, failed);
+        toast(`Salvo. ${failed.length === 1 ? '1 foto será' : failed.length + ' fotos serão'} reenviada(s) automaticamente (sinal fraco).`);
+      }
+    } catch (e) { console.error('saveDraft error:', e); toast('Erro ao salvar (' + (e && e.code || e.message || 'desconhecido') + ')'); }
+  }
+
+  function serializeWiz() {
+    const clone = {};
+    ['flightNumber','expedidorNome','execQty','econQty','crewTT','crewTC','step','startedBy','startedAt'].forEach(k => clone[k] = wiz[k]);
+    const categoriesClean = {};
+    CATS.forEach(c => {
+      const st = wiz.categories[c.key];
+      const items = (st.items || []).map(it => ({ desc: it.desc || '', qty: it.qty || '', status: it.status || '', horario: it.horario || '', uploadedUrl: it.uploadedUrl || null }));
+      categoriesClean[c.key] = { pendencia: items.length > 0, items };
+    });
+    clone.categories = categoriesClean;
+    ['spml','preorder'].forEach(k => {
+      clone[k] = { desc: wiz[k].desc || '', na: !!wiz[k].na, photos: (wiz[k].photos || []).map(p => ({ uploadedUrl: p.uploadedUrl || null })) };
+    });
+    ['fornosBC','fornosYC','remanentes','maletas'].forEach(k => {
+      clone[k] = { photos: (wiz[k].photos || []).map(p => ({ uploadedUrl: p.uploadedUrl || null })), na: !!wiz[k].na };
+    });
+    TROLLEY_CLASSES.forEach(cls => {
+      const mealsClean = {};
+      TROLLEY_MEALS.forEach(m => {
+        const st = wiz[cls.key][m.key];
+        mealsClean[m.key] = { na: !!st.na, frenteUrl: st.frente.uploadedUrl || null, versoUrl: st.verso.uploadedUrl || null };
+      });
+      clone[cls.key] = mealsClean;
+    });
+    clone.crew = { frenteUrl: wiz.crew.frente.uploadedUrl || null, versoUrl: wiz.crew.verso.uploadedUrl || null };
+    clone.apoio = { na: !!wiz.apoio.na, uploadedUrl: wiz.apoio.uploadedUrl || null };
+    return clone;
+  }
+
+  async function finalizeChecklist() {
+    if (step2HasUnresolvedChoice()) {
+      wiz.step = 2; renderWizardStep(); showScreen('screenWizard');
+      toast('Escolha "Chegou" ou "Ainda pendente" nas categorias com pendência');
+      return;
+    }
+    wizNext.textContent = 'Enviando…';
+    wizNext.disabled = true;
+    let failed = [];
+    try { failed = await uploadAllPending(); } catch (e) { console.error('uploadAllPending error:', e); }
+
+    const anyPendente = CATS.some(c => isCatUnresolved(wiz.categories[c.key]));
+    const payload = serializeWiz();
+    payload.status = anyPendente ? 'pendente' : 'completo';
+    payload.startedBy = wiz.startedBy || currentUser.user;
+    payload.startedAt = wiz.startedAt || new Date().toISOString();
+    payload.completedBy = currentUser.user;
+    payload.completedAt = new Date().toISOString();
+
+    if (db) {
+      try {
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        if (wiz.docId) { await db.collection(COLLECTION).doc(wiz.docId).set(payload, { merge: true }); }
+        else { const ref = await db.collection(COLLECTION).add(payload); wiz.docId = ref.id; }
+        if (failed.length) {
+          await enqueueFailedUploads(wiz.docId, failed);
+          toast(`${failed.length === 1 ? '1 foto' : failed.length + ' fotos'} não enviaram por sinal fraco — reenvio automático em andamento.`);
+        }
+      } catch (e) { console.error('finalizeChecklist error:', e); toast('Erro ao enviar (' + (e && e.code || e.message || 'desconhecido') + ')'); wizNext.disabled = false; wizNext.textContent = 'Enviar checklist'; return; }
+    } else {
+      toast('Enviado localmente — sem conexão com o servidor');
+    }
+
+    wizNext.disabled = false;
+    renderConfirm(anyPendente);
+    showScreen('screenConfirm');
+  }
+
+  // ---------- Confirmação ----------
+  function renderConfirm(hasPendencia) {
+    const wrap = document.getElementById('confirmWrap');
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    if (!hasPendencia) {
+      wrap.innerHTML = `
+        <div style="flex-grow:1;"></div>
+        <div class="confirm-icon" style="background:rgba(53,176,115,.12);">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#35b073" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h1 class="confirm-title">Checklist enviado</h1>
+        <p class="confirm-sub">com sucesso</p>
+        <div class="confirm-chip"><b>${esc(wiz.flightNumber)}</b><span>${hh}</span></div>
+        <div style="flex-grow:1;"></div>
+        <div style="width:100%;padding-bottom:30px;">
+          <button class="btn-primary" style="width:100%;" id="confirmNewBtn">Novo registro</button>
+        </div>`;
+    } else {
+      const pendCats = CATS.filter(c => isCatUnresolved(wiz.categories[c.key]));
+      const okCats = CATS.filter(c => !isCatUnresolved(wiz.categories[c.key])).map(c => c.label).join(', ');
+      wrap.innerHTML = `
+        <div style="padding-top:20px;"></div>
+        <div class="confirm-icon" style="background:rgba(255,176,32,.12);">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#ffb020" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <h1 class="confirm-title">Enviado com pendência</h1>
+        <div class="confirm-chip"><b>${esc(wiz.flightNumber)}</b><span>registrado por ${esc(wiz.expedidorNome || currentUser.user)} · ${hh}</span></div>
+        <div class="pend-list">
+          ${pendCats.map(c => `
+            <div class="pend-item">
+              <div class="row"><span style="font-weight:700;">${c.label}</span><span class="pend-tag">Ainda pendente</span></div>
+              ${getCatItems(wiz.categories[c.key]).filter(isItemUnresolved).map(it => `
+              <p style="margin:0;font-size:13px;color:var(--text-dim);">${esc(it.desc || 'Sem descrição')} ${it.qty ? '· qtd. ' + esc(it.qty) : ''}</p>`).join('')}
+            </div>`).join('')}
+          ${okCats ? `<div class="pend-ok"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#35b073" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>${okCats} — sem pendência</div>` : ''}
+        </div>
+        <div style="flex-grow:1;"></div>
+        <div style="width:100%;padding-bottom:30px;">
+          <button class="btn-primary" style="width:100%;" id="confirmNewBtn">Novo registro</button>
+        </div>`;
+    }
+    document.getElementById('confirmNewBtn').addEventListener('click', () => showScreen('screenHome'));
+  }
+
+  // ---------- Pendentes ----------
+  document.getElementById('btnPendentes').addEventListener('click', () => { renderPendentes(); showScreen('screenPendentes'); });
+  document.getElementById('backFromPendentes').addEventListener('click', () => showScreen('screenHome'));
+
+  function renderPendentes() {
+    const host = document.getElementById('pendentesList');
+    const items = cachedDocs.filter(d => d.status !== 'completo');
+    if (!items.length) {
+      host.innerHTML = `
+        <p class="empty-note">Nenhum voo pendente no momento.</p>
+        <button class="btn-primary" style="width:100%;" id="pendGoHomeBtn">Voltar ao início</button>`;
+      document.getElementById('pendGoHomeBtn').addEventListener('click', () => showScreen('screenHome'));
+      return;
+    }
+    host.innerHTML = items.map(d => `
+      <button class="flight-item is-pend" data-id="${esc(d.id)}">
+        <div class="row"><span class="num">${esc(d.flightNumber || '—')}</span><span class="badge-pend">${d.status === 'rascunho' ? 'Incompleto' : 'Pendência'}</span></div>
+        <span class="meta">iniciado por ${esc(d.expedidorNome || d.startedBy || '—')}</span>
+      </button>`).join('');
+    host.querySelectorAll('.flight-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const doc = cachedDocs.find(d => d.id === btn.dataset.id);
+        if (!doc) return;
+        if (doc.status === 'rascunho') {
+          // incomplete draft: reopen the full wizard where it was left off
+          resumeDraft(doc);
+        } else {
+          // fully submitted checklist with an open pendência: go straight to resolving it
+          renderResolveScreen(doc);
+          showScreen('screenResolve');
+        }
+      });
+    });
+  }
+
+  // ---------- Resolver pendência ----------
+  document.getElementById('backFromResolve').addEventListener('click', () => showScreen('screenPendentes'));
+  let resolveDoc = null;
+
+  function renderResolveScreen(doc) {
+    resolveDoc = doc;
+    document.getElementById('resolveFlightTitle').textContent = doc.flightNumber || 'Pendência';
+    document.getElementById('resolveNome').value = '';
+    const pendCats = CATS.filter(c => doc.categories && isCatUnresolved(doc.categories[c.key]));
+    const host = document.getElementById('resolveList');
+    if (!pendCats.length) {
+      host.innerHTML = '<p class="empty-note">Nenhuma pendência em aberto neste voo.</p>';
+      return;
+    }
+    host.innerHTML = pendCats.map(c => {
+      const items = getCatItems(doc.categories[c.key]);
+      const unresolved = items.map((it, idx) => ({ it, idx })).filter(({ it }) => isItemUnresolved(it));
+      return `
+      <div class="cat-card has-pend" data-cat="${c.key}">
+        <span class="cat-name">${c.label}</span>
+        ${unresolved.map(({ it, idx }) => `
+        <div style="display:flex; flex-direction:column; gap:8px; padding:10px 0; ${unresolved.length > 1 ? 'border-bottom:1px solid var(--line);' : ''}">
+          <p style="margin:0;font-size:13px;color:var(--text-dim);">${esc(it.desc || 'Sem descrição')} ${it.qty ? '· qtd. ' + esc(it.qty) : ''}</p>
+          <div>
+            <p class="mini-label" style="margin-bottom:6px;">Horário real de entrega</p>
+            <input class="mini-input" type="time" data-resolve-cat="${c.key}" data-resolve-idx="${idx}">
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('resolveSaveBtn').addEventListener('click', async () => {
+    if (!resolveDoc) return;
+    const nome = document.getElementById('resolveNome').value.trim();
+    if (!nome) { toast('Informe o nome de quem entregou'); return; }
+    const inputs = document.querySelectorAll('#resolveList [data-resolve-cat]');
+    const filled = Array.from(inputs).filter(i => i.value);
+    if (!filled.length) { toast('Preencha ao menos um horário antes de salvar'); return; }
+
+    const updatedCategories = JSON.parse(JSON.stringify(resolveDoc.categories || {}));
+    // migra pro formato de lista na hora, caso essa categoria ainda esteja no
+    // formato antigo (um único item achatado)
+    CATS.forEach(c => {
+      if (!Array.isArray((updatedCategories[c.key] || {}).items)) {
+        const items = getCatItems(updatedCategories[c.key]);
+        updatedCategories[c.key] = { pendencia: items.length > 0, items };
+      }
+    });
+    filled.forEach(input => {
+      const key = input.dataset.resolveCat;
+      const idx = Number(input.dataset.resolveIdx);
+      updatedCategories[key].items[idx].status = 'chegou';
+      updatedCategories[key].items[idx].horario = input.value;
+    });
+    const stillPendente = CATS.some(c => isCatUnresolved(updatedCategories[c.key]));
+
+    if (!db) { toast('Sem conexão — não foi possível salvar'); return; }
+    const updates = {
+      categories: updatedCategories,
+      status: stillPendente ? 'pendente' : 'completo',
+      resolvedBy: currentUser.user,
+      resolvedByNome: nome,
+      resolvedAt: new Date().toISOString()
+    };
+    try {
+      await db.collection(COLLECTION).doc(resolveDoc.id).update(updates);
+      // update local cache immediately so it disappears from Pendentes right away,
+      // instead of waiting for the next Firestore snapshot round-trip
+      updateLocalDoc(resolveDoc.id, updates);
+      if (!stillPendente) cachedDocs = cachedDocs.filter(d => d.id !== resolveDoc.id);
+      refreshPendCount();
+      renderPendentes();
+      toast(stillPendente ? 'Horário salvo — ainda restam pendências' : 'Pendência resolvida!');
+      showScreen('screenPendentes');
+    } catch (e) {
+      console.error('resolve pendencia error:', e);
+      toast('Erro ao salvar (' + (e && e.code || e.message || 'desconhecido') + ')');
+    }
+  });
+
+  // ---------- Histórico ----------
+  document.getElementById('btnHistorico').addEventListener('click', () => {
+    showScreen('screenHistorico');
+    loadHistorico(false);
+    loadHistTrend();
+  });
+  document.getElementById('backFromHistorico').addEventListener('click', () => showScreen('screenHome'));
+  document.getElementById('histSearch').addEventListener('input', renderHistorico);
+
+  // fixed catalog of items that commonly go missing — matched against pendência
+  // descriptions as whole items, instead of splitting into loose words (so "vinho tinto"
+  // counts once, not as "vinho" + "tinto" separately)
+  const MISSING_ITEMS = ['Gaveta de bebidas','Gaveta de água','Snk4','Lanche','Lanche HLD2','Carne','Peixe','Pasta','Fornos','Trolleys','Miscelâneas','Chocolate','Sorvete','Kosher','Especial','Bandejas'];
+
+  function normText(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  function computeMissingItems(docs) {
+    const counts = {};
+    MISSING_ITEMS.forEach(it => { counts[it] = 0; });
+    docs.forEach(d => {
+      if (!d.categories) return;
+      CATS.forEach(c => {
+        getCatItems(d.categories[c.key]).forEach(item => {
+          const desc = normText(item.desc);
+          if (!desc) return;
+          MISSING_ITEMS.forEach(it => { if (desc.includes(normText(it))) counts[it]++; });
+        });
+      });
+    });
+    return Object.entries(counts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  }
+
+  // ---- tendência: este mês vs mês passado ----
+  function computeMonthStats(docs, year, month) {
+    let totalVoos = 0, comPendencia = 0;
+    const catCounts = {}; CATS.forEach(c => catCounts[c.key] = 0);
+    docs.forEach(d => {
+      const date = getDocDate(d);
+      if (!date || date.getFullYear() !== year || date.getMonth() !== month) return;
+      totalVoos++;
+      if (hadAnyPendencia(d)) comPendencia++;
+      if (d.categories) CATS.forEach(c => { if (getCatItems(d.categories[c.key]).length) catCounts[c.key]++; });
+    });
+    return { totalVoos, comPendencia, catCounts };
+  }
+
+  function trendRowHtml(label, curr, prev, lowerIsBetter) {
+    const delta = curr - prev;
+    const pct = prev > 0 ? Math.round((delta / prev) * 100) : (curr > 0 ? 100 : 0);
+    let arrowColor = 'var(--text-mute)';
+    let arrow = '—';
+    if (delta > 0) { arrow = '▲'; arrowColor = lowerIsBetter ? 'var(--pink-mid)' : 'var(--green)'; }
+    else if (delta < 0) { arrow = '▼'; arrowColor = lowerIsBetter ? 'var(--green)' : 'var(--pink-mid)'; }
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span style="font-size:13px;font-weight:600;color:var(--text-dim);">${label}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--text-mute);">${prev} → </span>
+          <b style="font-size:15px;">${curr}</b>
+          <span style="font-size:12px;font-weight:700;color:${arrowColor};min-width:44px;text-align:right;">${arrow}${delta !== 0 ? ' ' + Math.abs(pct) + '%' : ''}</span>
+        </div>
+      </div>`;
+  }
+
+  function renderHistTrend() {
+    const wrap = document.getElementById('histTrendWrap');
+    const host = document.getElementById('histTrendBars');
+    const now = new Date();
+    const curr = computeMonthStats(trendDocs, now.getFullYear(), now.getMonth());
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prev = computeMonthStats(trendDocs, prevDate.getFullYear(), prevDate.getMonth());
+
+    if (!curr.totalVoos && !prev.totalVoos) { wrap.classList.add('hidden'); return; }
+    wrap.classList.remove('hidden');
+
+    const currPct = curr.totalVoos ? Math.round((curr.comPendencia / curr.totalVoos) * 100) : 0;
+    const prevPct = prev.totalVoos ? Math.round((prev.comPendencia / prev.totalVoos) * 100) : 0;
+
+    host.innerHTML = [
+      trendRowHtml('Voos conferidos', curr.totalVoos, prev.totalVoos, false),
+      trendRowHtml('% dos voos com pendência', currPct, prevPct, true),
+      ...CATS.map(c => trendRowHtml(c.label, curr.catCounts[c.key], prev.catCounts[c.key], true))
+    ].join('<div style="height:1px;background:var(--line);"></div>');
+  }
+
+  // ---- date-range filter (50+ voos/dia deixam o histórico gigante sem isso) ----
+  let histRange = 'today';
+  let histWordsExpanded = false;
+
+  function getDocDate(d) {
+    if (d.createdAt && typeof d.createdAt.toDate === 'function') { try { return d.createdAt.toDate(); } catch (e) {} }
+    if (d.completedAt) return new Date(d.completedAt);
+    if (d.startedAt) return new Date(d.startedAt);
+    return null;
+  }
+
+  function startOfDay(dt) { return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()); }
+
+  function inHistRange(date, range) {
+    if (range === 'all') return true;
+    if (!date) return false;
+    const now = new Date();
+    const today0 = startOfDay(now);
+    if (range === 'today') return startOfDay(date).getTime() === today0.getTime();
+    if (range === 'yesterday') {
+      const y = new Date(today0); y.setDate(y.getDate() - 1);
+      return startOfDay(date).getTime() === y.getTime();
+    }
+    if (range === '7d') {
+      const cutoff = new Date(today0); cutoff.setDate(cutoff.getDate() - 6);
+      return date.getTime() >= cutoff.getTime();
+    }
+    if (range === 'month') return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    return true;
+  }
+
+  // ---- Histórico: busca no Firestore só o período escolhido, em páginas ----
+  // (antes o app baixava só os 300 voos mais recentes e filtrava no aparelho,
+  // então "Este mês"/"Tudo" ficavam incompletos depois de poucos dias)
+  const HIST_PAGE_SIZE = 200;
+  let histDocs = [];
+  let histCursor = null;
+  let histHasMore = false;
+  let histLoading = false;
+  let histLoadSeq = 0;
+
+  function histRangeBounds(range) {
+    const today0 = startOfDay(new Date());
+    if (range === 'today') return { start: today0 };
+    if (range === 'yesterday') { const y = new Date(today0); y.setDate(y.getDate() - 1); return { start: y, end: today0 }; }
+    if (range === '7d') { const s = new Date(today0); s.setDate(s.getDate() - 6); return { start: s }; }
+    if (range === 'month') return { start: new Date(today0.getFullYear(), today0.getMonth(), 1) };
+    return null; // 'all'
+  }
+
+  async function loadHistorico(append) {
+    if (!db || !currentUser) return;
+    const seq = ++histLoadSeq;
+    if (!append) { histDocs = []; histCursor = null; histHasMore = false; }
+    histLoading = true;
+    renderHistorico();
+    try {
+      let q = db.collection(COLLECTION);
+      const b = histRangeBounds(histRange);
+      if (b) {
+        q = q.where('createdAt', '>=', b.start);
+        if (b.end) q = q.where('createdAt', '<', b.end);
+      }
+      q = q.orderBy('createdAt', 'desc').limit(HIST_PAGE_SIZE);
+      if (append && histCursor) q = q.startAfter(histCursor);
+      const snap = await q.get();
+      if (seq !== histLoadSeq) return;
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      histDocs = append ? histDocs.concat(docs) : docs;
+      if (snap.docs.length) histCursor = snap.docs[snap.docs.length - 1];
+      histHasMore = snap.docs.length === HIST_PAGE_SIZE;
+    } catch (e) {
+      console.error('loadHistorico error:', e);
+      if (seq === histLoadSeq) toast('Erro ao carregar o histórico (' + (e && e.code || 'sem conexão') + ')');
+    } finally {
+      if (seq === histLoadSeq) { histLoading = false; renderHistorico(); }
+    }
+  }
+
+  // comparação "este mês vs mês passado" (só admin) — guardada por 10 min pra
+  // não reler os dois meses inteiros toda vez que o histórico abre
+  let trendDocs = [];
+  let trendLoadedAt = 0;
+  async function loadHistTrend() {
+    if (!db || !currentUser || currentUser.role !== 'admin') return;
+    if (Date.now() - trendLoadedAt < 10 * 60 * 1000) return;
+    try {
+      const now = new Date();
+      const snap = await db.collection(COLLECTION)
+        .where('createdAt', '>=', new Date(now.getFullYear(), now.getMonth() - 1, 1))
+        .get();
+      trendDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      trendLoadedAt = Date.now();
+      if (document.getElementById('screenHistorico').classList.contains('active')) renderHistTrend();
+    } catch (e) { console.error('loadHistTrend error:', e); }
+  }
+
+  function updateLocalDoc(id, updates) {
+    const apply = (arr) => { const i = arr.findIndex(x => x.id === id); if (i !== -1) arr[i] = Object.assign({}, arr[i], updates); };
+    apply(cachedDocs); apply(histDocs); apply(trendDocs);
+  }
+
+  document.querySelectorAll('#histDateChips .chip-btn').forEach(chip => {
+    chip.addEventListener('click', () => {
+      histRange = chip.dataset.range;
+      document.querySelectorAll('#histDateChips .chip-btn').forEach(c => c.classList.toggle('active', c === chip));
+      histWordsExpanded = false;
+      loadHistorico(false);
+    });
+  });
+
+  document.getElementById('histLoadMore').addEventListener('click', () => loadHistorico(true));
+
+  document.getElementById('histWordsToggle').addEventListener('click', () => {
+    histWordsExpanded = !histWordsExpanded;
+    renderHistorico();
+  });
+
+  let currentHistList = [];
+  function renderHistorico() {
+    if (!currentUser) return;
+    const isAdmin = currentUser.role === 'admin';
+    document.getElementById('histAdminTag').classList.toggle('hidden', !isAdmin);
+    document.getElementById('histCatWrap').classList.toggle('hidden', !isAdmin);
+    document.getElementById('btnExportHistPdf').classList.toggle('hidden', !isAdmin);
+    if (!isAdmin) {
+      document.getElementById('histWordsWrap').classList.add('hidden');
+      document.getElementById('histTrendWrap').classList.add('hidden');
+    }
+
+    const q = document.getElementById('histSearch').value.trim().toLowerCase();
+    // o Firestore já devolve só o período escolhido; o filtro aqui só garante
+    // que um registro editado agora há pouco não apareça no período errado
+    const rangeFiltered = histDocs.filter(d => !getDocDate(d) || inHistRange(getDocDate(d), histRange));
+    const list = rangeFiltered.filter(d => !q
+      || (d.flightNumber || '').toLowerCase().includes(q)
+      || (d.startedBy || '').toLowerCase().includes(q)
+      || (d.completedBy || '').toLowerCase().includes(q)
+      || (d.expedidorNome || '').toLowerCase().includes(q));
+    currentHistList = list;
+
+    // rodapé da lista: "carregando…" / "carregar mais"
+    const loadMoreBtn = document.getElementById('histLoadMore');
+    const histStatus = document.getElementById('histStatus');
+    loadMoreBtn.classList.toggle('hidden', histLoading || !histHasMore);
+    histStatus.textContent = histLoading ? 'Carregando…' : (histDocs.length ? `${histDocs.length} registro(s) carregado(s)${histHasMore ? ' — tem mais' : ''}` : '');
+    const emptyNote = histLoading ? '<p class="empty-note">Carregando…</p>' : '<p class="empty-note">Nenhum registro encontrado.</p>';
+
+    if (!isAdmin) {
+      const listHost = document.getElementById('histList');
+      if (!list.length) { listHost.innerHTML = emptyNote; return; }
+      listHost.innerHTML = list.map(d => {
+        let badge;
+        if (d.status !== 'completo') badge = '<span class="badge-pend">Pendência</span>';
+        else if (hadAnyPendencia(d)) badge = '<span class="badge-resolved">Completo · teve pendência</span>';
+        else badge = '<span class="badge-ok">Completo</span>';
+        const spmlLine = d.spml && d.spml.na ? 'Não se aplica' : (d.spml && d.spml.desc) ? d.spml.desc : '—';
+        const preorderLine = d.preorder && d.preorder.na ? 'Não se aplica' : (d.preorder && d.preorder.desc) ? d.preorder.desc : '—';
+        return `
+        <button class="flight-item ${d.status !== 'completo' ? 'is-pend' : ''}" data-id="${esc(d.id)}">
+          <div class="row"><span class="num" style="color:#fff;">${esc(d.flightNumber || '—')}</span>${badge}</div>
+          <span class="meta">${esc(d.expedidorNome || d.completedBy || d.startedBy || '—')}</span>
+          <div style="display:flex; gap:16px; margin-top:2px;">
+            <span style="font-size:12.5px; color:var(--text-dim);"><b style="color:var(--text-mute); font-weight:700;">Executiva</b> ${esc(d.execQty || '—')}</span>
+            <span style="font-size:12.5px; color:var(--text-dim);"><b style="color:var(--text-mute); font-weight:700;">Econômica</b> ${esc(d.econQty || '—')}</span>
+          </div>
+          <p style="margin:2px 0 0 0; font-size:12.5px; color:var(--text-dim); line-height:1.4;"><b style="color:var(--text-mute); font-weight:700;">SPML:</b> ${esc(spmlLine)}</p>
+          <p style="margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.4;"><b style="color:var(--text-mute); font-weight:700;">Pré-orders:</b> ${esc(preorderLine)}</p>
+        </button>`;
+      }).join('');
+      listHost.querySelectorAll('.flight-item').forEach(btn => {
+        btn.addEventListener('click', () => openDetail(histDocs.find(d => d.id === btn.dataset.id)));
+      });
+      return;
+    }
+
+    // category bars (scoped to the selected period)
+    const counts = { equipamento: 0, producao: 0, bonded: 0 };
+    rangeFiltered.forEach(d => {
+      if (!d.categories) return;
+      CATS.forEach(c => { if (getCatItems(d.categories[c.key]).length) counts[c.key]++; });
+    });
+    const max = Math.max(1, ...Object.values(counts));
+    document.getElementById('histCatBars').innerHTML = CATS.map(c => `
+      <div class="bar-cat">
+        <div class="row"><span>${c.label}</span><b>${counts[c.key]}</b></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(counts[c.key]/max*100)}%;"></div></div>
+      </div>`).join('');
+
+    // "o que mais costuma faltar" — catálogo fixo de itens, dentro do período escolhido
+    const allItems = computeMissingItems(rangeFiltered);
+    const wordsWrap = document.getElementById('histWordsWrap');
+    const wordsToggle = document.getElementById('histWordsToggle');
+    wordsWrap.classList.remove('hidden');
+    if (allItems.length) {
+      const shown = histWordsExpanded ? allItems : allItems.slice(0, 5);
+      const wmax = Math.max(1, ...allItems.map(w => w[1]));
+      document.getElementById('histWordBars').innerHTML = shown.map(([item, n]) => `
+        <div class="bar-cat">
+          <div class="row"><span>${item}</span><b>${n}</b></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/wmax*100)}%;"></div></div>
+        </div>`).join('');
+      if (allItems.length > 5) {
+        wordsToggle.classList.remove('hidden');
+        wordsToggle.textContent = histWordsExpanded ? 'Mostrar menos' : 'Mostrar tudo';
+      } else {
+        wordsToggle.classList.add('hidden');
+      }
+    } else {
+      document.getElementById('histWordBars').innerHTML = '<p class="empty-note" style="margin:0;">Ainda sem dados suficientes de itens faltantes.</p>';
+      wordsToggle.classList.add('hidden');
+    }
+
+    renderHistTrend();
+
+    const listHost = document.getElementById('histList');
+    if (!list.length) { listHost.innerHTML = emptyNote; return; }
+    listHost.innerHTML = list.map(d => {
+      let badge;
+      if (d.status !== 'completo') badge = '<span class="badge-pend">Pendência</span>';
+      else if (hadAnyPendencia(d)) badge = '<span class="badge-resolved">Completo · teve pendência</span>';
+      else badge = '<span class="badge-ok">Completo</span>';
+      return `
+      <button class="flight-item ${d.status !== 'completo' ? 'is-pend' : ''}" data-id="${esc(d.id)}">
+        <div class="row"><span class="num" style="color:#fff;">${esc(d.flightNumber || '—')}</span>${badge}</div>
+        <span class="meta">${esc(d.expedidorNome || d.completedBy || d.startedBy || '—')}</span>
+      </button>`;
+    }).join('');
+    listHost.querySelectorAll('.flight-item').forEach(btn => {
+      btn.addEventListener('click', () => openDetail(histDocs.find(d => d.id === btn.dataset.id)));
+    });
+  }
+
+  // ---------- Exportar histórico do período em PDF (tabela, estilo checklist) ----------
+  const HIST_RANGE_LABELS = { today: 'Hoje', yesterday: 'Ontem', '7d': 'Últimos 7 dias', month: 'Este mês', all: 'Todo o histórico' };
+
+  document.getElementById('btnExportHistPdf').addEventListener('click', () => exportHistoricoPdf());
+
+  async function exportHistoricoPdf() {
+    if (!window.jspdf) { toast('Não foi possível gerar o PDF — biblioteca não carregou (verifique sua internet)'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
+    if (typeof doc.autoTable !== 'function') { toast('Não foi possível gerar o PDF — biblioteca de tabela não carregou'); return; }
+    if (!currentHistList.length) { toast('Nenhum registro no período selecionado pra exportar'); return; }
+
+    toast('Gerando PDF…');
+    const margin = 30;
+    let y = margin;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('LSG SKY CHEFS · LATAM', margin, y); y += 16;
+    doc.setFontSize(16);
+    doc.text('Conferência de voos — relatório de pendências', margin, y); y += 14;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Período: ${HIST_RANGE_LABELS[histRange] || 'Tudo'}   ·   Gerado em ${new Date().toLocaleString('pt-BR')}   ·   ${currentHistList.length} voo(s)`, margin, y);
+    y += 14;
+    doc.setTextColor(20);
+
+    const rows = currentHistList.map(d => {
+      const catUnresolvedItems = CATS.map(c => ({ c, items: getCatItems(d.categories && d.categories[c.key]).filter(isItemUnresolved) })).filter(x => x.items.length);
+      const catResolvedItems = CATS.map(c => ({ c, items: getCatItems(d.categories && d.categories[c.key]).filter(it => !isItemUnresolved(it)) })).filter(x => x.items.length);
+      let status;
+      if (catUnresolvedItems.length) status = 'Pendência aberta';
+      else if (catResolvedItems.length) status = 'Resolvida';
+      else status = 'Sem pendência';
+
+      const detailLines = [];
+      catUnresolvedItems.forEach(({ c, items }) => {
+        items.forEach(it => detailLines.push(`${c.label}: ${it.desc || 'sem descrição'}${it.qty ? ' · qtd. ' + it.qty : ''} · em aberto`));
+      });
+      catResolvedItems.forEach(({ c, items }) => {
+        items.forEach(it => detailLines.push(`${c.label}: ${it.desc || 'sem descrição'}${it.qty ? ' · qtd. ' + it.qty : ''} · entregue às ${it.horario}`));
+      });
+      const detail = detailLines.length ? detailLines.join('\n') : '—';
+
+      return [
+        d.flightNumber || '—',
+        d.expedidorNome || d.startedBy || '—',
+        status,
+        detail,
+        d.resolvedByNome || '—'
+      ];
+    });
+
+    doc.autoTable({
+      startY: y + 6,
+      margin: { left: margin, right: margin },
+      head: [['Voo', 'Expedidor', 'Status', 'Pendências / horário de entrega', 'Entregue por']],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 5, valign: 'top' },
+      headStyles: { fillColor: [237, 22, 80], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 60 },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 75 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 80 }
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 2 && data.section === 'body') {
+          if (data.cell.raw === 'Pendência aberta') data.cell.styles.textColor = [237, 22, 80];
+          else if (data.cell.raw === 'Resolvida') data.cell.styles.textColor = [255, 176, 32];
+          else data.cell.styles.textColor = [53, 176, 115];
+        }
+      }
+    });
+
+    doc.save(`conferencia-relatorio-${histRange}-${Date.now()}.pdf`);
+  }
+
+  // SPML/Pré-orders: formato novo guarda uma lista `photos`; registros antigos
+  // guardavam uma única foto em `uploadedUrl` — lê os dois
+  function getSpecialPhotos(st) {
+    if (!st) return [];
+    if (Array.isArray(st.photos)) return st.photos;
+    return st.uploadedUrl ? [{ uploadedUrl: st.uploadedUrl }] : [];
+  }
+
+  // fotos do voo separadas por seção, na mesma ordem do checklist
+  function getPhotoGroups(d) {
+    const groups = [];
+    const add = (title, photos) => { const ok = photos.filter(p => p[1]); if (ok.length) groups.push({ title, photos: ok }); };
+    [['spml', 'SPML'], ['preorder', 'Pré-orders']].forEach(([k, title]) => {
+      if (d[k] && d[k].na) return;
+      add(title, getSpecialPhotos(d[k]).map((p, i, arr) => [arr.length > 1 ? `Foto ${i + 1}` : '', p.uploadedUrl]));
+    });
+    [['fornosBC', 'Fornos BC'], ['fornosYC', 'Fornos YC'], ['remanentes', 'Remanentes'], ['maletas', 'Maletas']].forEach(([k, title]) => {
+      if (!d[k] || d[k].na) return;
+      add(title, (d[k].photos || []).map((p, i, arr) => [arr.length > 1 ? `Foto ${i + 1}` : '', p.uploadedUrl]));
+    });
+    TROLLEY_CLASSES.forEach(cls => {
+      const meals = d[cls.key];
+      if (!meals) return;
+      const photos = [];
+      TROLLEY_MEALS.forEach(m => {
+        const st = meals[m.key];
+        if (!st || st.na) return;
+        photos.push([`${m.label} · Frente`, st.frenteUrl], [`${m.label} · Verso`, st.versoUrl]);
+      });
+      add(`Trolley ${cls.label}`, photos);
+    });
+    if (d.crew) add('Crew', [['Frente', d.crew.frenteUrl], ['Verso', d.crew.versoUrl]]);
+    if (d.apoio && !d.apoio.na) add('Trolley de apoio', [['', d.apoio.uploadedUrl]]);
+    return groups;
+  }
+
+  function openDetail(d) {
+    if (!d) return;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'sheet-backdrop';
+    // cada categoria pode ter mais de uma pendência, e uma pode estar resolvida
+    // enquanto outra ainda não — por isso olhamos item a item, não a categoria inteira
+    const catUnresolvedItems = CATS.map(c => ({ c, items: getCatItems(d.categories && d.categories[c.key]).filter(isItemUnresolved) })).filter(x => x.items.length);
+    const catResolvedItems = CATS.map(c => ({ c, items: getCatItems(d.categories && d.categories[c.key]).filter(it => !isItemUnresolved(it)) })).filter(x => x.items.length);
+    const photoGroups = getPhotoGroups(d);
+    // lista "achatada" (rótulo completo + url) usada no PDF — inclui as fotos das pendências
+    const photoPairs = [];
+    CATS.forEach(c => getCatItems(d.categories && d.categories[c.key]).forEach((it, i) => {
+      if (it.uploadedUrl) photoPairs.push([`Pendência · ${c.label} ${i + 1}${it.desc ? ' (' + it.desc + ')' : ''}`, it.uploadedUrl]);
+    }));
+    photoGroups.forEach(g => g.photos.forEach(([label, url]) => photoPairs.push([label ? `${g.title} · ${label}` : g.title, url])));
+
+    // uma pendência com a foto dela logo ao lado — fica claro qual foto é de qual item
+    const pendItemHtml = (c, it, extra) => `
+      <div class="pend-photo-row">
+        ${it.uploadedUrl ? `<img class="detail-img pend-thumb" src="${esc(it.uploadedUrl)}" alt="">` : '<div class="pend-thumb pend-thumb-empty">sem foto</div>'}
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--text-mute);">${c.label}</span>
+          <p class="desc" style="margin:0;">${esc(it.desc || 'sem descrição')}${it.qty ? ' · qtd. ' + esc(it.qty) : ''}${extra || ''}</p>
+        </div>
+      </div>`;
+
+    backdrop.innerHTML = `
+      <div class="sheet">
+        <div class="sheet-head">
+          <div><span class="num" style="font-family:var(--font-display);font-size:20px;font-weight:800;">${esc(d.flightNumber || '—')}</span></div>
+          <button class="sheet-close" id="sheetClose">✕</button>
+        </div>
+        ${catUnresolvedItems.length ? `
+        <div class="detail-block" style="border-color:var(--amber);">
+          <div class="name">O que ficou faltando</div>
+          ${catUnresolvedItems.map(({ c, items }) => items.map(it => pendItemHtml(c, it)).join('')).join('')}
+        </div>` : ''}
+        ${catResolvedItems.length ? `
+        <div class="detail-block" style="border-color:var(--amber);">
+          <div class="name">Pendências resolvidas (atraso registrado)</div>
+          ${catResolvedItems.map(({ c, items }) => items.map(it => pendItemHtml(c, it, ' · entregue às ' + esc(it.horario))).join('')).join('')}
+        </div>` : ''}
+        ${(!catUnresolvedItems.length && !catResolvedItems.length) ? `<div class="detail-block"><div class="name">Sem pendências</div></div>` : ''}
+        <div class="detail-block">
+          <div class="name">Expedidor</div>
+          <p class="desc">${esc(d.expedidorNome || d.startedBy || '—')}</p>
+        </div>
+        <div class="detail-block">
+          <div class="name">Quantidade a bordo</div>
+          <p class="desc">Executiva: ${esc(d.execQty || '—')} · Econômica: ${esc(d.econQty || '—')} · Tripulação Técnica: ${esc(d.crewTT || '—')} · Tripulação Comercial: ${esc(d.crewTC || '—')}</p>
+        </div>
+        ${d.resolvedByNome ? `
+        <div class="detail-block">
+          <div class="name">Pendência entregue por</div>
+          <p class="desc">${esc(d.resolvedByNome)}${d.resolvedAt ? ' · ' + new Date(d.resolvedAt).toLocaleString('pt-BR') : ''}</p>
+        </div>` : ''}
+        ${(d.spml && (d.spml.desc || d.spml.na)) || (d.preorder && (d.preorder.desc || d.preorder.na)) || (d.remanentes && d.remanentes.na) || (d.maletas && d.maletas.na) || (d.apoio && d.apoio.na) ? `
+        <div class="detail-block">
+          <div class="name">Observações</div>
+          ${d.spml && d.spml.na ? `<p class="desc"><b>SPML:</b> Não se aplica</p>` : d.spml && d.spml.desc ? `<p class="desc"><b>SPML:</b> ${esc(d.spml.desc)}</p>` : ''}
+          ${d.preorder && d.preorder.na ? `<p class="desc"><b>Pré-orders:</b> Não se aplica</p>` : d.preorder && d.preorder.desc ? `<p class="desc"><b>Pré-orders:</b> ${esc(d.preorder.desc)}</p>` : ''}
+          ${d.remanentes && d.remanentes.na ? `<p class="desc"><b>Remanentes:</b> Não se aplica</p>` : ''}
+          ${d.maletas && d.maletas.na ? `<p class="desc"><b>Maletas:</b> Não se aplica</p>` : ''}
+          ${d.apoio && d.apoio.na ? `<p class="desc"><b>Trolley de apoio:</b> Não se aplica</p>` : ''}
+        </div>` : ''}
+        ${photoGroups.length ? `
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <p style="font-size:12px;font-weight:700;color:var(--text-mute);text-transform:uppercase;margin:0;">Fotos anexadas</p>
+          ${photoGroups.map(g => `
+          <div class="photo-group">
+            <div class="photo-group-head"><span>${esc(g.title)}</span><span class="photo-group-count">${g.photos.length}</span></div>
+            <div class="detail-grid">
+              ${g.photos.map(([label, url]) => `
+              <figure class="photo-card">
+                <img class="detail-img" src="${esc(url)}" alt="" loading="lazy">
+                ${label ? `<figcaption>${esc(label)}</figcaption>` : ''}
+              </figure>`).join('')}
+            </div>
+          </div>`).join('')}
+        </div>` : ''}
+        <div style="display:flex;gap:10px;padding-top:4px;">
+          <button class="btn-ghost" style="flex:1;" id="sheetPdfBtn">Baixar PDF</button>
+        </div>
+        ${currentUser.role === 'admin' ? `
+        <div style="display:flex;gap:10px;">
+          <button class="btn-ghost" style="flex:1;" id="sheetEditBtn">Editar</button>
+          <button class="btn-ghost" style="flex:1;color:var(--pink-mid);border-color:var(--pink-line);" id="sheetDeleteBtn">Apagar</button>
+        </div>` : ''}
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+    backdrop.querySelector('#sheetClose').addEventListener('click', () => backdrop.remove());
+    backdrop.querySelectorAll('.detail-img').forEach(img => {
+      img.addEventListener('click', () => openLightbox(img.src));
+      // as fotos são apagadas do Cloudinary depois de PHOTO_RETENTION_DAYS dias;
+      // o registro continua, então mostra um aviso no lugar da imagem quebrada
+      img.addEventListener('error', () => {
+        const ph = document.createElement('div');
+        ph.className = 'photo-missing' + (img.classList.contains('pend-thumb') ? ' pend-thumb' : '');
+        ph.textContent = `Foto expirada (mais de ${PHOTO_RETENTION_DAYS} dias)`;
+        img.replaceWith(ph);
+      });
+    });
+    const pdfBtn = backdrop.querySelector('#sheetPdfBtn');
+    if (pdfBtn) pdfBtn.addEventListener('click', () => exportDetailPdf(d, photoPairs, catUnresolvedItems, catResolvedItems));
+    const editBtn = backdrop.querySelector('#sheetEditBtn');
+    if (editBtn) editBtn.addEventListener('click', () => { backdrop.remove(); renderAdminEditScreen(d); showScreen('screenAdminEdit'); });
+    const deleteBtn = backdrop.querySelector('#sheetDeleteBtn');
+    if (deleteBtn) deleteBtn.addEventListener('click', () => { backdrop.remove(); confirmDeleteDoc(d); });
+  }
+
+  // ---------- Exportar PDF do voo (pra imprimir/anexar como evidência) ----------
+  function dataUrlFormat(dataUrl) {
+    const m = /^data:image\/(\w+);/.exec(dataUrl);
+    const ext = (m && m[1] || 'jpeg').toUpperCase();
+    return ext === 'JPG' ? 'JPEG' : ext;
+  }
+
+  function fetchImageAsDataUrl(url) {
+    return fetch(url)
+      .then(res => { if (!res.ok) throw new Error('falha ao baixar foto'); return res.blob(); })
+      .then(blob => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }));
+  }
+
+  async function exportDetailPdf(d, photoPairs, catUnresolvedItems, catResolvedItems) {
+    catUnresolvedItems = catUnresolvedItems || [];
+    catResolvedItems = catResolvedItems || [];
+    if (!window.jspdf) { toast('Não foi possível gerar o PDF — biblioteca não carregou (verifique sua internet)'); return; }
+    toast('Gerando PDF…');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = margin;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('LSG SKY CHEFS · LATAM', margin, y); y += 20;
+    doc.setFontSize(20);
+    doc.text(`Voo ${d.flightNumber || '—'}`, margin, y); y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(120);
+    const dt = getDocDate(d);
+    doc.text(`Conferência de evidências · gerado em ${new Date().toLocaleString('pt-BR')}${dt ? ' · registro de ' + dt.toLocaleString('pt-BR') : ''}`, margin, y);
+    y += 18;
+    doc.setDrawColor(220); doc.line(margin, y, pageW - margin, y); y += 18;
+    doc.setTextColor(20);
+
+    function sectionTitle(text) {
+      if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5);
+      doc.text(text.toUpperCase(), margin, y); y += 14;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5);
+    }
+    function bodyLine(text) {
+      const lines = doc.splitTextToSize(text, pageW - margin * 2);
+      lines.forEach(line => {
+        if (y > pageH - margin) { doc.addPage(); y = margin; }
+        doc.text(line, margin, y); y += 14;
+      });
+    }
+
+    sectionTitle('Expedidor');
+    bodyLine(d.expedidorNome || d.startedBy || '—');
+    y += 6;
+
+    sectionTitle('Quantidade a bordo');
+    bodyLine(`Executiva: ${d.execQty || '—'}   ·   Econômica: ${d.econQty || '—'}   ·   Tripulação técnica: ${d.crewTT || '—'}   ·   Tripulação comercial: ${d.crewTC || '—'}`);
+    y += 6;
+
+    if (catUnresolvedItems.length) {
+      sectionTitle('O que ficou faltando');
+      catUnresolvedItems.forEach(({ c, items }) => {
+        items.forEach(it => bodyLine(`• ${c.label}: ${it.desc || 'sem descrição'}${it.qty ? ' · qtd. ' + it.qty : ''}`));
+      });
+      y += 6;
+    }
+
+    if (catResolvedItems.length) {
+      sectionTitle('Pendências resolvidas (atraso registrado)');
+      catResolvedItems.forEach(({ c, items }) => {
+        items.forEach(it => bodyLine(`• ${c.label}: ${it.desc || 'sem descrição'}${it.qty ? ' · qtd. ' + it.qty : ''} · entregue às ${it.horario}`));
+      });
+      y += 6;
+    }
+
+    if (!catUnresolvedItems.length && !catResolvedItems.length) {
+      sectionTitle('Pendências');
+      bodyLine('Sem pendências registradas.');
+      y += 6;
+    }
+
+    if (d.resolvedByNome) {
+      sectionTitle('Pendência entregue por');
+      bodyLine(`${d.resolvedByNome}${d.resolvedAt ? ' · ' + new Date(d.resolvedAt).toLocaleString('pt-BR') : ''}`);
+      y += 6;
+    }
+
+    const obsLines = [];
+    if (d.spml && d.spml.na) obsLines.push('SPML: Não se aplica');
+    else if (d.spml && d.spml.desc) obsLines.push('SPML: ' + d.spml.desc);
+    if (d.preorder && d.preorder.na) obsLines.push('Pré-orders: Não se aplica');
+    else if (d.preorder && d.preorder.desc) obsLines.push('Pré-orders: ' + d.preorder.desc);
+    if (d.remanentes && d.remanentes.na) obsLines.push('Remanentes: Não se aplica');
+    if (d.maletas && d.maletas.na) obsLines.push('Maletas: Não se aplica');
+    if (d.apoio && d.apoio.na) obsLines.push('Trolley de apoio: Não se aplica');
+    if (obsLines.length) {
+      sectionTitle('Observações');
+      obsLines.forEach(l => bodyLine('• ' + l));
+      y += 6;
+    }
+
+    if (photoPairs.length) {
+      if (y > pageH - margin - 60) { doc.addPage(); y = margin; }
+      sectionTitle(`Fotos anexadas (${photoPairs.length})`);
+      y += 4;
+      const colGap = 16;
+      const colW = (pageW - margin * 2 - colGap) / 2;
+      const imgH = colW * 0.72;
+      let col = 0;
+      for (const [label, url] of photoPairs) {
+        if (col === 0 && y + imgH + 26 > pageH - margin) { doc.addPage(); y = margin; }
+        const x = margin + col * (colW + colGap);
+        try {
+          const dataUrl = await fetchImageAsDataUrl(url);
+          doc.addImage(dataUrl, dataUrlFormat(dataUrl), x, y, colW, imgH, undefined, 'FAST');
+        } catch (e) {
+          doc.setDrawColor(210);
+          doc.rect(x, y, colW, imgH);
+          doc.setFontSize(8);
+          doc.text(`(foto indisponível — as fotos são apagadas após ${PHOTO_RETENTION_DAYS} dias)`, x + 6, y + imgH / 2, { maxWidth: colW - 12 });
+        }
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(90);
+        doc.text(label, x, y + imgH + 12, { maxWidth: colW });
+        doc.setTextColor(20);
+        col++;
+        if (col === 2) { col = 0; y += imgH + 26; }
+      }
+    }
+
+    const safeFlight = (d.flightNumber || 'voo').replace(/\s+/g, '');
+    doc.save(`conferencia-${safeFlight}-${d.id || Date.now()}.pdf`);
+  }
+
+  // ---------- Lightbox: ver foto em tamanho grande ----------
+  function openLightbox(url) {
+    const lb = document.createElement('div');
+    lb.className = 'lightbox-backdrop';
+    lb.innerHTML = `<button class="lightbox-close" id="lightboxClose">✕</button><img src="${esc(url)}">`;
+    document.body.appendChild(lb);
+    lb.addEventListener('click', (e) => { if (e.target === lb || e.target.id === 'lightboxClose') lb.remove(); });
+  }
+
+  // ---------- Admin: apagar registro ----------
+  function confirmDeleteDoc(d) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'sheet-backdrop';
+    backdrop.innerHTML = `
+      <div class="sheet" style="gap:18px;">
+        <div class="sheet-head"><div style="font-size:16px;font-weight:800;">Apagar registro?</div></div>
+        <p style="margin:0;font-size:13px;color:var(--text-dim);">O voo <b>${esc(d.flightNumber || '—')}</b> será apagado permanentemente. Essa ação não pode ser desfeita.</p>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-ghost" style="flex:1;" id="cancelDeleteBtn">Cancelar</button>
+          <button class="btn-primary" style="flex:1;background:var(--pink);" id="confirmDeleteBtn">Apagar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+    backdrop.querySelector('#cancelDeleteBtn').addEventListener('click', () => backdrop.remove());
+    backdrop.querySelector('#confirmDeleteBtn').addEventListener('click', async () => {
+      if (!db) { toast('Sem conexão — não foi possível apagar'); return; }
+      try {
+        await db.collection(COLLECTION).doc(d.id).delete();
+        cachedDocs = cachedDocs.filter(x => x.id !== d.id);
+        histDocs = histDocs.filter(x => x.id !== d.id);
+        trendDocs = trendDocs.filter(x => x.id !== d.id);
+        refreshPendCount();
+        if (document.getElementById('screenPendentes').classList.contains('active')) renderPendentes();
+        if (document.getElementById('screenHistorico').classList.contains('active')) renderHistorico();
+        toast('Registro apagado');
+      } catch (e) {
+        console.error('delete doc error:', e);
+        toast('Erro ao apagar (' + (e && e.code || e.message || 'desconhecido') + ')');
+      }
+      backdrop.remove();
+    });
+  }
+
+  // ---------- Admin: editar registro ----------
+  let adminEditDoc = null;
+  let adminEditState = null;
+
+  document.getElementById('backFromAdminEdit').addEventListener('click', () => showScreen('screenHistorico'));
+
+  function renderAdminEditScreen(doc) {
+    adminEditDoc = doc;
+    const cats = {};
+    CATS.forEach(c => {
+      const items = getCatItems(doc.categories && doc.categories[c.key]).map(it => ({ desc: it.desc || '', qty: it.qty || '', status: it.status || '', horario: it.horario || '', uploadedUrl: it.uploadedUrl || null }));
+      cats[c.key] = { pendencia: items.length > 0, items };
+    });
+    adminEditState = {
+      flightNumber: doc.flightNumber || '', expedidorNome: doc.expedidorNome || '', execQty: doc.execQty || '', econQty: doc.econQty || '', crewTT: doc.crewTT || '', crewTC: doc.crewTC || '',
+      categories: cats,
+      spml: { desc: (doc.spml && doc.spml.desc) || '', na: !!(doc.spml && doc.spml.na) },
+      preorder: { desc: (doc.preorder && doc.preorder.desc) || '', na: !!(doc.preorder && doc.preorder.na) }
+    };
+    renderAdminEditBody();
+  }
+
+  function renderAdminEditBody() {
+    const s = adminEditState;
+    const host = document.getElementById('adminEditBody');
+    host.innerHTML = `
+      <div class="field-card">
+        <label for="aeFlight">Número do voo</label>
+        <input id="aeFlight" type="text" value="${esc(s.flightNumber)}">
+      </div>
+      <div class="field-card">
+        <label for="aeExpedidor">Nome do expedidor</label>
+        <input id="aeExpedidor" type="text" value="${esc(s.expedidorNome)}" style="font-size:16px;">
+      </div>
+      <div class="qty-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="qty-box"><label>Executiva</label><input id="aeExec" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(s.execQty)}"></div>
+        <div class="qty-box"><label>Econômica</label><input id="aeEcon" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(s.econQty)}"></div>
+        <div class="qty-box"><label>Trip. Técnica</label><input id="aeCrewTT" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(s.crewTT)}"></div>
+        <div class="qty-box"><label>Trip. Comercial</label><input id="aeCrewTC" type="number" inputmode="numeric" pattern="[0-9]*" value="${esc(s.crewTC)}"></div>
+      </div>
+      ${CATS.map(c => {
+        const st = s.categories[c.key];
+        const items = st.items;
+        return `
+        <div class="cat-card ${items.length ? 'has-pend' : ''}" data-ae-cat="${c.key}">
+          <span class="cat-name">${c.label}</span>
+          <div class="toggle-row">
+            <button type="button" class="toggle-btn ${!items.length ? 'active' : ''}" data-act="setPend" data-val="0">Sem pendência</button>
+            <button type="button" class="toggle-btn ${items.length ? 'active' : ''}" data-act="setPend" data-val="1">Pendência</button>
+          </div>
+          ${items.length ? `
+          <div class="cat-extra" style="gap:14px;">
+            ${items.map((it, idx) => `
+            <div class="pend-item-card" data-idx="${idx}" style="display:flex; flex-direction:column; gap:10px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:11px; font-weight:800; letter-spacing:.5px; color:var(--text-mute); text-transform:uppercase;">Item ${idx + 1}</span>
+                ${items.length > 1 ? `<button type="button" data-act="removeItem" style="background:none; border:none; color:var(--pink-mid); font-size:12px; font-weight:700; padding:4px;">Remover</button>` : ''}
+              </div>
+              <div><p class="mini-label" style="margin-bottom:6px;">Descreva a pendência</p><textarea class="mini-textarea" data-act="desc">${esc(it.desc)}</textarea></div>
+              <div><p class="mini-label" style="margin-bottom:6px;">Quantidade</p><input class="mini-input" style="width:100px;" type="number" inputmode="numeric" pattern="[0-9]*" data-act="qty" value="${esc(it.qty)}"></div>
+              <div>
+                <p class="mini-label" style="margin-bottom:6px;">Situação</p>
+                <div class="toggle-row">
+                  <button type="button" class="toggle-btn ${it.status === 'chegou' ? 'active' : ''}" data-act="setStatus" data-val="chegou">Chegou · horário</button>
+                  <button type="button" class="toggle-btn ${it.status === 'pendente' ? 'active warn' : ''}" data-act="setStatus" data-val="pendente">Ainda pendente</button>
+                </div>
+              </div>
+              ${it.status === 'chegou' ? `<div><p class="mini-label" style="margin-bottom:6px;">Horário real de entrega</p><input class="mini-input" type="time" data-act="horario" value="${esc(it.horario)}"></div>` : ''}
+            </div>`).join('')}
+            <button type="button" data-act="addItem" class="pendente-link" style="align-self:flex-start; text-decoration:none; display:flex; align-items:center; gap:6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Adicionar outro item
+            </button>
+          </div>` : ''}
+        </div>`;
+      }).join('')}
+      <div class="photo-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span class="name">SPML</span>
+          <button type="button" class="toggle-btn ${s.spml.na ? 'active warn' : ''}" data-ae-na="spml" style="flex:none;height:32px;padding:0 12px;">${s.spml.na ? 'Não se aplica' : 'Marcar N/A'}</button>
+        </div>
+        ${!s.spml.na ? `<textarea class="mini-textarea" id="aeSpmlDesc">${esc(s.spml.desc)}</textarea>` : ''}
+      </div>
+      <div class="photo-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <span class="name">Pré-orders</span>
+          <button type="button" class="toggle-btn ${s.preorder.na ? 'active warn' : ''}" data-ae-na="preorder" style="flex:none;height:32px;padding:0 12px;">${s.preorder.na ? 'Não se aplica' : 'Marcar N/A'}</button>
+        </div>
+        ${!s.preorder.na ? `<textarea class="mini-textarea" id="aePreorderDesc">${esc(s.preorder.desc)}</textarea>` : ''}
+      </div>
+      <p style="margin:0;font-size:11.5px;font-weight:500;color:var(--text-faint);">Fotos já enviadas não são alteradas por aqui.</p>`;
+
+    document.getElementById('aeFlight').addEventListener('input', e => s.flightNumber = e.target.value.toUpperCase());
+    document.getElementById('aeExpedidor').addEventListener('input', e => s.expedidorNome = e.target.value);
+    document.getElementById('aeExec').addEventListener('input', e => s.execQty = e.target.value);
+    document.getElementById('aeEcon').addEventListener('input', e => s.econQty = e.target.value);
+    document.getElementById('aeCrewTT').addEventListener('input', e => s.crewTT = e.target.value);
+    document.getElementById('aeCrewTC').addEventListener('input', e => s.crewTC = e.target.value);
+
+    host.querySelectorAll('[data-ae-cat]').forEach(card => {
+      const key = card.dataset.aeCat;
+      const st = s.categories[key];
+      card.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-act]');
+        if (!btn) return;
+        if (btn.dataset.act === 'setPend') {
+          if (btn.dataset.val === '1') { if (!st.items.length) st.items.push(freshPendItem()); }
+          else { st.items = []; }
+          renderAdminEditBody();
+          return;
+        }
+        if (btn.dataset.act === 'addItem') { st.items.push(freshPendItem()); renderAdminEditBody(); return; }
+        if (btn.dataset.act === 'removeItem') {
+          const idx = Number(e.target.closest('[data-idx]').dataset.idx);
+          st.items.splice(idx, 1);
+          renderAdminEditBody();
+          return;
+        }
+        if (btn.dataset.act === 'setStatus') {
+          const idx = Number(e.target.closest('[data-idx]').dataset.idx);
+          st.items[idx].status = btn.dataset.val;
+          renderAdminEditBody();
+        }
+      });
+      card.querySelectorAll('[data-idx]').forEach(itemCard => {
+        const idx = Number(itemCard.dataset.idx);
+        const it = st.items[idx];
+        const desc = itemCard.querySelector('[data-act="desc"]'); if (desc) desc.addEventListener('input', e => it.desc = e.target.value);
+        const qty = itemCard.querySelector('[data-act="qty"]'); if (qty) qty.addEventListener('input', e => it.qty = e.target.value);
+        const hor = itemCard.querySelector('[data-act="horario"]'); if (hor) hor.addEventListener('input', e => it.horario = e.target.value);
+      });
+    });
+    host.querySelectorAll('[data-ae-na]').forEach(btn => {
+      btn.addEventListener('click', () => { const k = btn.dataset.aeNa; s[k].na = !s[k].na; renderAdminEditBody(); });
+    });
+    const spmlDesc = document.getElementById('aeSpmlDesc'); if (spmlDesc) spmlDesc.addEventListener('input', e => s.spml.desc = e.target.value);
+    const preorderDesc = document.getElementById('aePreorderDesc'); if (preorderDesc) preorderDesc.addEventListener('input', e => s.preorder.desc = e.target.value);
+  }
+
+  document.getElementById('adminEditSaveBtn').addEventListener('click', async () => {
+    if (!adminEditDoc || !adminEditState) return;
+    const s = adminEditState;
+    if (!s.flightNumber.trim()) { toast('Informe o número do voo'); return; }
+    const categoriesClean = {};
+    CATS.forEach(c => {
+      const items = s.categories[c.key].items.map(it => ({ desc: it.desc || '', qty: it.qty || '', status: it.status || '', horario: it.horario || '', uploadedUrl: it.uploadedUrl || null }));
+      categoriesClean[c.key] = { pendencia: items.length > 0, items };
+    });
+    const stillPendente = CATS.some(c => isCatUnresolved(categoriesClean[c.key]));
+    const updates = {
+      flightNumber: s.flightNumber.trim(),
+      expedidorNome: s.expedidorNome.trim(),
+      execQty: s.execQty, econQty: s.econQty, crewTT: s.crewTT, crewTC: s.crewTC,
+      categories: categoriesClean,
+      // mantém as fotos já enviadas (a edição do admin não mexe em foto)
+      spml: { desc: s.spml.desc, na: s.spml.na, photos: getSpecialPhotos(adminEditDoc.spml).map(p => ({ uploadedUrl: p.uploadedUrl || null })) },
+      preorder: { desc: s.preorder.desc, na: s.preorder.na, photos: getSpecialPhotos(adminEditDoc.preorder).map(p => ({ uploadedUrl: p.uploadedUrl || null })) },
+      status: stillPendente ? 'pendente' : 'completo',
+      editedBy: currentUser.user,
+      editedAt: new Date().toISOString()
+    };
+    if (!db) { toast('Sem conexão — não foi possível salvar'); return; }
+    try {
+      await db.collection(COLLECTION).doc(adminEditDoc.id).update(updates);
+      updateLocalDoc(adminEditDoc.id, updates);
+      refreshPendCount();
+      renderHistorico();
+      toast('Registro atualizado');
+      showScreen('screenHistorico');
+    } catch (e) {
+      console.error('admin edit save error:', e);
+      toast('Erro ao salvar (' + (e && e.code || e.message || 'desconhecido') + ')');
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

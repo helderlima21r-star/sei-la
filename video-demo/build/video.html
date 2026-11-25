@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Conferência · demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#120f24; --panel:#1c1832; --panel2:#241d3f; --line:#362f52;
+    --text:#edf1f5; --dim:#aab3c6; --mute:#7c86a0;
+    --pink:#ed1650; --pink-mid:#ff5f8f; --pink-bg:#3a0f28; --pink-line:#5c1c3a;
+    --green:#35b073; --amber:#ffb020;
+    --display:'Big Shoulders Display', sans-serif; --body:'IBM Plex Sans', sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; width:1920px; height:1080px; overflow:hidden; background:#07060f; font-family:var(--body); color:var(--text); }
+  #stage{ position:absolute; inset:0; overflow:hidden; background:var(--ink); }
+  .abs{ position:absolute; will-change:transform,opacity; }
+
+  /* fundo */
+  #glowA,#glowB,#glowC{ position:absolute; border-radius:50%; filter:blur(120px); }
+  #glowA{ width:900px; height:900px; background:radial-gradient(circle, rgba(237,22,80,.55), rgba(237,22,80,0) 70%); }
+  #glowB{ width:800px; height:800px; background:radial-gradient(circle, rgba(92,40,160,.55), rgba(92,40,160,0) 70%); }
+  #glowC{ width:700px; height:700px; background:radial-gradient(circle, rgba(255,95,143,.35), rgba(255,95,143,0) 70%); }
+  #grid{ position:absolute; inset:-80px; background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size:80px 80px;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 50%, #000 20%, transparent 75%); }
+  #grain{ position:absolute; inset:0; opacity:.06; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  #fade{ position:absolute; inset:0; background:#000; pointer-events:none; }
+
+  /* intro */
+  #intro{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; }
+  #introIconWrap{ position:relative; width:220px; height:220px; }
+  #introIcon{ width:220px; height:220px; border-radius:52px; box-shadow:0 30px 80px rgba(237,22,80,.35), 0 0 0 1px rgba(255,255,255,.08) inset; }
+  .ring{ position:absolute; left:50%; top:50%; border-radius:50%; border:2px solid rgba(255,95,143,.7); transform:translate(-50%,-50%); }
+  #introTitle{ font-family:var(--display); font-weight:900; font-size:150px; line-height:.9; letter-spacing:1px; display:flex; }
+  #introTitle span{ display:inline-block; }
+  .badge{ display:inline-flex; align-items:center; gap:10px; background:var(--pink-bg); border:1px solid var(--pink-line); border-radius:999px; padding:12px 24px; }
+  .badge b{ font-size:17px; font-weight:800; letter-spacing:2px; color:var(--pink-mid); }
+  .badge span{ font-size:17px; font-weight:700; letter-spacing:2px; color:var(--dim); }
+  #introTag{ font-size:28px; color:var(--dim); font-weight:500; }
+
+  /* celular */
+  #phone{ position:absolute; left:0; top:0; width:414px; height:868px; transform-origin:50% 50%; }
+  #phoneBody{ position:absolute; inset:0; border-radius:64px; background:linear-gradient(145deg,#3b3550,#15121f 40%,#2b2640); padding:12px;
+    box-shadow:0 60px 120px rgba(0,0,0,.6), 0 0 0 2px rgba(255,255,255,.08), 0 0 140px rgba(237,22,80,.18); }
+  #phoneBody:before{ content:''; position:absolute; right:-4px; top:200px; width:4px; height:90px; border-radius:0 4px 4px 0; background:#2b2640; }
+  #phoneBody:after{ content:''; position:absolute; left:-4px; top:170px; width:4px; height:60px; border-radius:4px 0 0 4px; background:#2b2640; box-shadow:0 80px 0 #2b2640; }
+  #screen{ position:relative; width:390px; height:844px; border-radius:52px; overflow:hidden; background:var(--ink); }
+  .shot{ position:absolute; left:0; top:0; width:390px; }
+  #statusbar{ position:absolute; left:0; right:0; top:0; height:24px; background:linear-gradient(var(--ink) 70%, rgba(18,15,36,0)); display:flex; justify-content:space-between; align-items:center; padding:0 34px; font-size:11.5px; font-weight:700; color:#fff; z-index:5; }
+  #statusbar i{ display:inline-block; }
+  .hl{ position:absolute; border:2px solid var(--pink-mid); border-radius:16px; box-shadow:0 0 0 4px rgba(255,95,143,.18), 0 0 40px rgba(255,95,143,.45); z-index:6; }
+  .touch{ position:absolute; width:46px; height:46px; margin:-23px 0 0 -23px; border-radius:50%; background:rgba(255,255,255,.85); box-shadow:0 0 0 6px rgba(255,255,255,.18), 0 6px 18px rgba(0,0,0,.4); z-index:8; }
+  .ripple{ position:absolute; border-radius:50%; border:3px solid rgba(255,255,255,.9); z-index:7; }
+  .typefield{ position:absolute; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0 16px; display:flex; align-items:center; font-size:16px; color:var(--text); z-index:4; }
+  .typefield.focus{ border-color:var(--pink-mid); }
+  .caret{ display:inline-block; width:2px; height:20px; background:var(--pink-mid); margin-left:2px; }
+
+  /* textos */
+  .copy{ position:absolute; left:150px; width:700px; }
+  .eyebrow{ display:inline-flex; align-items:center; gap:12px; font-size:18px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:var(--pink-mid); }
+  .eyebrow .num{ font-family:var(--display); font-size:22px; font-weight:800; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:var(--pink); color:#fff; letter-spacing:0; }
+  .copy h1{ font-family:var(--display); font-weight:900; font-size:96px; line-height:.95; margin:22px 0 22px; letter-spacing:.5px; }
+  .copy h1 .w{ display:inline-block; margin-right:22px; }
+  .copy h1 .w.pk{ color:var(--pink-mid); }
+  .copy p{ font-size:27px; line-height:1.45; color:var(--dim); margin:0; max-width:620px; }
+
+  /* stepper */
+  #stepper{ position:absolute; left:150px; top:560px; width:640px; display:flex; flex-direction:column; gap:0; }
+  .st{ position:relative; display:flex; gap:22px; align-items:flex-start; padding:0 0 26px 0; }
+  .st .n{ flex:none; width:48px; height:48px; border-radius:50%; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:800; font-size:24px; color:var(--mute); background:var(--ink); position:relative; z-index:2; }
+  .st .tx b{ display:block; font-size:24px; font-weight:700; color:var(--mute); }
+  .st .tx span{ display:block; font-size:18px; color:var(--mute); margin-top:4px; }
+  .st .bar{ position:absolute; left:23px; top:50px; width:2px; height:calc(100% - 52px); background:var(--line); overflow:hidden; }
+  .st .bar i{ position:absolute; left:0; top:0; width:100%; background:var(--pink); }
+
+  /* callouts */
+  .callout{ position:absolute; z-index:20; }
+  .callout .lbl{ display:inline-flex; align-items:center; gap:10px; background:rgba(28,24,50,.92); border:1px solid var(--line); border-radius:999px; padding:9px 18px 9px 14px; font-size:19px; font-weight:700; margin-bottom:12px; white-space:nowrap; backdrop-filter:blur(8px); }
+  .callout .lbl i{ width:10px; height:10px; border-radius:50%; background:var(--pink-mid); box-shadow:0 0 12px var(--pink-mid); }
+  .callout .zoom{ position:relative; overflow:hidden; border-radius:22px; border:1.5px solid rgba(255,95,143,.6); box-shadow:0 40px 90px rgba(0,0,0,.55), 0 0 60px rgba(237,22,80,.25); background:var(--ink); }
+  .callout .zoom img{ position:absolute; left:0; top:0; }
+  #links{ position:absolute; inset:0; z-index:15; pointer-events:none; }
+
+  /* recursos */
+  #features{ position:absolute; inset:0; }
+  #featTitle{ position:absolute; left:0; right:0; top:150px; text-align:center; }
+  #featTitle h2{ font-family:var(--display); font-weight:900; font-size:96px; margin:16px 0 0; }
+  .fcard{ position:absolute; width:500px; height:220px; border-radius:26px; background:linear-gradient(160deg, rgba(36,29,63,.95), rgba(28,24,50,.95)); border:1px solid var(--line); padding:30px 32px; box-shadow:0 30px 70px rgba(0,0,0,.35); }
+  .fcard .ic{ width:56px; height:56px; border-radius:16px; background:var(--pink-bg); border:1px solid var(--pink-line); display:flex; align-items:center; justify-content:center; color:var(--pink-mid); }
+  .fcard b{ display:block; font-size:27px; font-weight:700; margin-top:20px; }
+  .fcard span{ display:block; font-size:19px; color:var(--dim); margin-top:8px; line-height:1.4; }
+
+  /* outro */
+  #outro{ position:absolute; inset:0; }
+  #outIcon{ position:absolute; left:50%; top:150px; width:170px; height:170px; margin-left:-85px; border-radius:40px; box-shadow:0 30px 80px rgba(237,22,80,.35); }
+  #outTitle{ position:absolute; left:0; right:0; top:345px; text-align:center; font-family:var(--display); font-weight:900; font-size:140px; line-height:1; }
+  #outTag{ position:absolute; left:0; right:0; top:500px; text-align:center; font-size:30px; color:var(--dim); }
+  #outChips{ position:absolute; left:0; right:0; top:590px; display:flex; justify-content:center; gap:16px; }
+  .chip{ font-size:20px; font-weight:600; color:var(--text); padding:12px 22px; border-radius:999px; background:rgba(36,29,63,.8); border:1px solid var(--line); }
+  #outBrands{ position:absolute; left:0; right:0; top:730px; display:flex; justify-content:center; align-items:center; gap:46px; }
+  .wm{ font-family:var(--display); font-weight:900; letter-spacing:6px; font-size:54px; }
+  .wm small{ display:block; font-family:var(--body); font-size:15px; letter-spacing:4px; font-weight:700; color:var(--mute); text-align:center; margin-bottom:6px; }
+  .wm.sky{ color:var(--pink-mid); }
+  .wm.lat{ color:var(--text); }
+  #outX{ font-size:40px; color:var(--mute); font-weight:300; }
+  #outBy{ position:absolute; left:0; right:0; top:900px; text-align:center; font-size:24px; color:var(--mute); letter-spacing:3px; text-transform:uppercase; }
+  #outBy b{ font-family:var(--display); font-size:44px; letter-spacing:2px; color:#fff; text-transform:none; margin-left:10px; }
+  #outLine{ position:absolute; left:50%; top:690px; width:520px; height:1px; margin-left:-260px; background:linear-gradient(90deg, transparent, var(--line), transparent); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="glowA"></div><div id="glowB"></div><div id="glowC"></div>
+  <div id="grid"></div>
+
+  <!-- INTRO -->
+  <div id="intro">
+    <div id="introIconWrap">
+      <div class="ring" id="ring1"></div><div class="ring" id="ring2"></div>
+      <img id="introIcon" src="../app-snapshot/icons/icon-512.png">
+    </div>
+    <div id="introTitle"></div>
+    <div class="badge" id="introBadge"><b>LSG SKY CHEFS</b><span>· LATAM</span></div>
+    <div id="introTag">Conferência de voo digital, do trolley ao relatório.</div>
+  </div>
+
+  <!-- TEXTOS -->
+  <div id="copies"></div>
+  <div id="stepper"></div>
+
+  <!-- CELULAR -->
+  <div id="phone">
+    <div id="phoneBody">
+      <div id="screen">
+        <div id="statusbar"><span>9:41</span><span>
+          <svg width="17" height="11" viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#fff"/><rect x="4.5" y="5" width="3" height="6" rx="1" fill="#fff"/><rect x="9" y="2.5" width="3" height="8.5" rx="1" fill="#fff"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#fff"/></svg>
+          &nbsp;<svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#fff" opacity=".5"/><rect x="2" y="2" width="16" height="8" rx="2" fill="#fff"/><rect x="22.5" y="4" width="2" height="4" rx="1" fill="#fff" opacity=".5"/></svg>
+        </span></div>
+        <div id="shots"></div>
+        <div id="overlays"></div>
+      </div>
+    </div>
+  </div>
+  <svg id="links" width="1920" height="1080"></svg>
+  <div id="callouts"></div>
+
+  <!-- RECURSOS -->
+  <div id="features">
+    <div id="featTitle"><div class="eyebrow" style="justify-content:center;width:100%;">E tem mais</div><h2>Feito pra rotina da rampa</h2></div>
+  </div>
+
+  <!-- OUTRO -->
+  <div id="outro">
+    <img id="outIcon" src="../app-snapshot/icons/icon-512.png">
+    <div id="outTitle">Conferência</div>
+    <div id="outTag">Checklist digital de voo — fotos, pendências e relatórios num só app.</div>
+    <div id="outChips"></div>
+    <div id="outLine"></div>
+    <div id="outBrands">
+      <div class="wm sky"><small>OPERAÇÃO</small>LSG SKY CHEFS</div>
+      <div id="outX">×</div>
+      <div class="wm lat"><small>CLIENTE</small>LATAM</div>
+    </div>
+    <div id="outBy">by<b>Helder</b></div>
+  </div>
+  <div id="grain"></div>
+  <div id="fade"></div>
+</div>
+
+<script>
+// ================= utilidades =================
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (k) => 1 - Math.pow(1 - k, 3);
+const eIn = (k) => k * k * k;
+const eIO = (k) => (k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const eBack = (k) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+// entra em [a, a+din], sai em [b, b+dout]
+const inOut = (t, a, b, din = .5, dout = .4) => Math.min(eOut(prog(t, a, a + din)), 1 - eIn(prog(t, b, b + dout)));
+
+// ================= dados =================
+const DUR = 79;
+const PHONE = { cx: 1130, cy: 540 };
+const RECTS = window.__RECTS || {};
+
+// telas do app: quando entram, transição e rolagem
+const TS = [16.7, 21.7, 26.7, 31.7, 36.7];
+const SEGS = [
+  { shot: '01-login', t: 0, tr: 'none' },
+  { shot: '03-home', t: 10.6, tr: 'fade' },
+  { shot: '04-step1', t: TS[0], tr: 'push' },
+  { shot: '05-step2', t: TS[1], tr: 'push', scroll: [[24.0, 0], [24.8, 530]] },
+  { shot: '06-step3', t: TS[2], tr: 'push', scroll: [[30.6, 0], [30.9, 12]] },
+  { shot: '07-step4', t: TS[3], tr: 'push', scroll: [[33.8, 0], [34.6, 300], [35.6, 300], [35.95, 517]] },
+  { shot: '08-step5', t: TS[4], tr: 'push', scroll: [[38.6, 0], [39.4, 480], [40.5, 480], [40.9, 835]] },
+  { shot: '09-confirm', t: 41.6, tr: 'push' },
+  { shot: '10-home-after', t: 45.7, tr: 'back' },
+  { shot: '11-pendentes', t: 46.9, tr: 'push' },
+  { shot: '12-resolve', t: 48.8, tr: 'push' },
+  { shot: '13-pendentes-after', t: 51.6, tr: 'back' },
+  { shot: '14-historico', t: 54.0, tr: 'push', scroll: [[55.6, 0], [56.4, 250], [58.3, 250], [59.1, 560]] },
+  { shot: '15-detalhe', t: 60.7, tr: 'rise' },
+];
+const SHOT_H = { '05-step2': 1374, '06-step3': 856, '07-step4': 1361, '08-step5': 1679, '14-historico': 2473 };
+
+// toques na tela (coordenadas do app, em px CSS)
+const TAPS = [
+  { t: 9.9, x: 195, y: 597 },          // Entrar
+  { t: 16.3, x: 195, y: 169 },         // Novo checklist
+  { t: TS[0] + 4.5, x: 195, y: 749 }, { t: TS[1] + 4.5, x: 264, y: 749 }, { t: TS[2] + 4.5, x: 264, y: 749 },
+  { t: TS[3] + 4.5, x: 264, y: 749 }, { t: TS[4] + 4.5, x: 264, y: 749 },
+  { t: 45.3, x: 195, y: 786 },         // Novo registro
+  { t: 46.5, x: 195, y: 269 },         // Pendentes
+  { t: 48.4, x: 195, y: 418 },         // LA 3350
+  { t: 51.2, x: 195, y: 786 },         // Salvar
+  { t: 53.7, x: 60, y: 40 },           // Voltar → histórico
+  { t: 60.3, x: 195, y: 1114 - 560 + 40 }, // abre um voo
+];
+
+// callouts: [início, fim, tela, região (x,y,w,h em px da página), rótulo]
+const CALLS = [
+  [12.7, 13.8, '03-home', [22, 121, 346, 96], 'Começar um novo checklist', true],
+  [13.9, 15.0, '03-home', [22, 231, 346, 77], 'Voos aguardando conclusão', true],
+  [15.1, 16.1, '03-home', [22, 322, 346, 77], 'Histórico completo (Admin)', true],
+  [17.4, 20.7, '04-step1', [22, 374, 346, 166], 'Quantidade a bordo por classe e tripulação'],
+  [22.3, 23.9, '05-step2', [22, 267, 346, 300], 'Pendência por categoria'],
+  [24.8, 26.0, '05-step2', [58, 658, 274, 180], 'Foto evidência na hora'],
+  [27.3, 28.9, '06-step3', [22, 146, 346, 438], 'SPML com várias fotos'],
+  [29.1, 30.5, '06-step3', [22, 600, 346, 95], 'Não tem no voo? Marca N/A'],
+  [32.3, 33.7, '07-step4', [22, 138, 346, 112], 'Confere com a Etapa 1'],
+  [34.6, 35.6, '07-step4', [22, 494, 346, 240], 'Fornos BC e YC fotografados'],
+  [37.3, 38.6, '08-step5', [22, 184, 346, 218], 'Trolley: frente e verso por refeição'],
+  [39.4, 40.5, '08-step5', [22, 663, 346, 218], 'Business, Econômica e Crew'],
+  [42.3, 45.0, '09-confirm', [32, 160, 326, 225], 'Produção segue como pendente'],
+  [47.4, 48.3, '11-pendentes', [22, 379, 346, 78], 'Voo LA 3350 com pendência', true],
+  [49.3, 51.0, '12-resolve', [22, 160, 346, 265], 'Quem entregou + horário real'],
+  [52.0, 53.5, '13-pendentes-after', [100, 768, 190, 57], 'Resolvida — sai da fila'],
+  [54.5, 55.6, '14-historico', [22, 160, 346, 140], 'Filtro por período + PDF'],
+  [56.5, 58.2, '14-historico', [22, 318, 346, 170], 'Categoria com mais pendência'],
+  [59.2, 60.2, '14-historico', [22, 809, 346, 258], 'Este mês vs mês passado'],
+  [61.3, 63.6, '15-detalhe', [22, 160, 346, 150], 'Cada voo com a foto do que faltou'],
+];
+
+const COPIES = [
+  { a: 5.6, b: 11.9, eb: 'Acesso', n: '01', h: 'Login rápido, por *equipe.*', p: 'Cada expedidor entra com o próprio usuário. Perfis de Equipe e Admin.' },
+  { a: 12.1, b: 16.5, eb: 'Início', n: '02', h: 'Tudo do voo em *três toques.*', p: 'Novo checklist, pendências em aberto e o histórico completo.' },
+  { a: 16.8, b: 41.3, eb: 'Checklist do voo', n: '03', h: '5 etapas. *Zero papel.*', p: 'Passo a passo guiado, com foto de cada evidência.', top: 150 },
+  { a: 41.7, b: 46.5, eb: 'Envio', n: '04', h: 'Faltou algo? *Fica registrado.*', p: 'O voo é enviado com a pendência marcada — nada se perde entre os turnos.' },
+  { a: 46.8, b: 53.7, eb: 'Pendências', n: '05', h: 'Quem recebe, *resolve.*', p: 'Outro expedidor registra quem entregou e o horário real de chegada.' },
+  { a: 54.0, b: 63.7, eb: 'Painel Admin', n: '06', h: 'Enxergue onde está o *gargalo.*', p: 'Categorias com mais pendência, itens que mais faltam, comparação mês a mês e exportação em PDF.' },
+];
+
+const STEPS = [
+  ['Novo registro', 'Voo, expedidor e quantidade a bordo'],
+  ['Categorias', 'Equipamento, Produção e Bonded'],
+  ['Especiais', 'SPML e Pré-orders'],
+  ['Quantidade', 'Fornos BC/YC, remanentes e maletas'],
+  ['Fotos das classes', 'Trolleys Business, Econômica e Crew'],
+];
+
+const ICONS = {
+  wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+  pause: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>',
+  pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/>',
+  phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+};
+const FEATS = [
+  ['wifi', 'Reenvio automático de fotos', 'Sinal fraco na pista? As fotos entram numa fila e reenviam sozinhas.'],
+  ['pause', 'Rascunho e “deixar pendente”', 'Parou no meio? Outro expedidor continua de onde parou.'],
+  ['pdf', 'Relatório em PDF', 'Exporta o período do histórico em um clique.'],
+  ['phone', 'Instala como app', 'Ícone na tela inicial e abre em tela cheia, como app nativo.'],
+  ['users', 'Perfis Equipe e Admin', 'Admin acompanha o painel, edita registros e exporta.'],
+  ['clock', 'Horário real de cada entrega', 'Toda pendência resolvida fica com hora e responsável.'],
+];
+
+// ================= montagem =================
+const shotEls = {};
+SEGS.forEach((s) => { const img = el('img', 'shot'); img.src = 'shots/' + s.shot + '.png'; img.style.opacity = 0; $('shots').appendChild(img); shotEls[s.shot] = img; });
+
+// letras do título da abertura
+'Conferência'.split('').forEach((c) => $('introTitle').appendChild(el('span', '', c)));
+
+// blocos de texto
+COPIES.forEach((c) => {
+  const d = el('div', 'copy');
+  // tudo entre * fica rosa
+  let inPk = false;
+  const hw = c.h.split(' ').map((w) => { const s = w.startsWith('*'); if (s) inPk = true; const cls = inPk ? ' pk' : ''; if (w.replace(/[.,]$/, '').endsWith('*')) inPk = false; return `<span class="w${cls}">${w.replace(/\*/g, '')}</span>`; });
+  d.innerHTML = `<div class="eyebrow"><span class="num">${c.n}</span>${c.eb}</div><h1>${hw.join(' ')}</h1><p>${c.p}</p>`;
+  $('copies').appendChild(d);
+  c.el = d;
+});
+
+STEPS.forEach(([b, s], i) => {
+  const st = el('div', 'st', `<div class="n">${i + 1}</div><div class="tx"><b>${b}</b><span>${s}</span></div>${i < 4 ? '<div class="bar"><i></i></div>' : ''}`);
+  $('stepper').appendChild(st);
+});
+
+// callouts
+CALLS.forEach((c) => {
+  const [a, b, shot, r, label, textOnly] = c;
+  const box = el('div', 'callout');
+  const k = Math.min(1.3, 430 / r[2], 470 / r[3]);
+  c.k = k;
+  box.innerHTML = `<div class="lbl"><i></i>${label}</div>` + (textOnly ? '' : `<div class="zoom" style="width:${r[2] * k}px;height:${r[3] * k}px;"><img src="shots/${shot}.png" style="width:${390 * k}px;left:${-r[0] * k}px;top:${-r[1] * k}px;"></div>`);
+  $('callouts').appendChild(box);
+  const hl = el('div', 'hl'); $('overlays').appendChild(hl);
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#ff5f8f'); line.setAttribute('stroke-width', '2'); line.setAttribute('stroke-dasharray', '6 6');
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); dot.setAttribute('r', '6'); dot.setAttribute('fill', '#ff5f8f');
+  $('links').appendChild(line); $('links').appendChild(dot);
+  Object.assign(c, { box, hl, line, dot, textOnly });
+});
+
+// toque
+const touch = el('div', 'touch'); $('overlays').appendChild(touch);
+const ripple = el('div', 'ripple'); $('overlays').appendChild(ripple);
+
+// digitação no login
+const tfUser = el('div', 'typefield'); Object.assign(tfUser.style, { left: '32px', top: '374px', width: '326px', height: '52px' });
+const tfPass = el('div', 'typefield'); Object.assign(tfPass.style, { left: '32px', top: '465px', width: '280px', height: '52px', borderRight: 'none', borderRadius: '14px 0 0 14px' });
+$('overlays').appendChild(tfUser); $('overlays').appendChild(tfPass);
+
+// recursos
+FEATS.forEach(([ic, b, s], i) => {
+  const d = el('div', 'fcard', `<div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[ic]}</svg></div><b>${b}</b><span>${s}</span>`);
+  const col = i % 3, row = Math.floor(i / 3);
+  d.style.left = (960 - 790 + col * 530) + 'px';
+  d.style.top = (440 + row * 250) + 'px';
+  $('features').appendChild(d);
+  FEATS[i].el = d;
+});
+['Checklist em 5 etapas', 'Fotos de evidência', 'Pendências rastreadas', 'Painel Admin', 'PDF'].forEach((t) => $('outChips').appendChild(el('div', 'chip', t)));
+
+// ================= cálculo por quadro =================
+function scrollOf(seg, t) {
+  if (!seg || !seg.scroll) return 0;
+  const k = seg.scroll;
+  if (t <= k[0][0]) return k[0][1];
+  for (let i = 0; i < k.length - 1; i++) {
+    if (t <= k[i + 1][0]) return lerp(k[i][1], k[i + 1][1], eIO(prog(t, k[i][0], k[i + 1][0])));
+  }
+  return k[k.length - 1][1];
+}
+const segOf = (shot) => SEGS.find((s) => s.shot === shot);
+
+function phonePose(t) {
+  // sobe na abertura, flutua, sai para os recursos
+  let x = PHONE.cx, y = PHONE.cy, rx = 0, ry = 0, rz = 0, s = 1, o = 1;
+  const rise = eOut(prog(t, 4.3, 5.6));
+  y += (1 - rise) * 900; rx = (1 - rise) * 30; ry = (1 - rise) * -18; s = lerp(.85, 1, rise);
+  o = prog(t, 4.3, 4.6);
+  y += Math.sin(t * 0.9) * 5;
+  const out = eIn(prog(t, 63.8, 64.6));
+  y += out * 1000; rx -= out * 20; rz += out * 6;
+  return { x, y, rx, ry, rz, s, o };
+}
+
+function render(t) {
+  // ---- fundo ----
+  $('glowA').style.transform = `translate(${-200 + Math.sin(t * .23) * 160}px, ${-300 + Math.cos(t * .19) * 120}px)`;
+  $('glowB').style.transform = `translate(${1300 + Math.cos(t * .17) * 180}px, ${500 + Math.sin(t * .21) * 140}px)`;
+  $('glowC').style.transform = `translate(${700 + Math.sin(t * .13) * 300}px, ${200 + Math.cos(t * .11) * 200}px)`;
+  $('grid').style.transform = `translate(${(t * 6) % 80}px, ${(t * 4) % 80}px)`;
+  $('fade').style.opacity = Math.max(1 - prog(t, 0, .8), prog(t, DUR - 1.0, DUR - .1));
+
+  // ---- abertura ----
+  const ic = eBack(prog(t, .4, 1.5));
+  const icOut = eIn(prog(t, 4.0, 4.7));
+  $('introIconWrap').style.transform = `scale(${lerp(.4, 1, ic) * (1 - icOut * .3)}) rotate(${lerp(-10, 0, ic)}deg) translateY(${-icOut * 120}px)`;
+  $('introIconWrap').style.opacity = clamp(prog(t, .4, .9)) * (1 - icOut);
+  $('introIcon').style.filter = `blur(${(1 - prog(t, .4, 1.2)) * 16}px)`;
+  [['ring1', 1.2], ['ring2', 1.9]].forEach(([id, a]) => { const k = prog(t, a, a + 1.6); const r = $(id); const sz = 220 + eOut(k) * 260; r.style.width = r.style.height = sz + 'px'; r.style.opacity = (k > 0 && k < 1) ? (1 - k) * .8 : 0; });
+  [...$('introTitle').children].forEach((sp, i) => { const k = eOut(prog(t, 1.4 + i * .045, 1.95 + i * .045)); sp.style.transform = `translateY(${(1 - k) * 70}px)`; sp.style.opacity = k * (1 - icOut); sp.style.filter = `blur(${(1 - k) * 10}px)`; });
+  const bk = eOut(prog(t, 2.2, 2.9)); $('introBadge').style.opacity = bk * (1 - icOut); $('introBadge').style.transform = `translateY(${(1 - bk) * 24 - icOut * 60}px)`;
+  const tk = eOut(prog(t, 2.8, 3.5)); $('introTag').style.opacity = tk * (1 - icOut); $('introTag').style.transform = `translateY(${(1 - tk) * 24 - icOut * 60}px)`;
+  $('introTitle').style.transform = `translateY(${-icOut * 80}px)`;
+  $('intro').style.display = t > 4.8 ? 'none' : 'flex';
+
+  // ---- celular ----
+  const P = phonePose(t);
+  const ph = $('phone');
+  ph.style.display = t > 4.2 && t < 64.8 ? 'block' : 'none';
+  ph.style.opacity = P.o;
+  ph.style.transform = `translate(${P.x - 207}px, ${P.y - 434}px) perspective(1800px) rotateX(${P.rx}deg) rotateY(${P.ry}deg) rotateZ(${P.rz}deg) scale(${P.s})`;
+  const screenX = P.x - 195, screenY = P.y - 422; // canto da tela (sem rotação durante os callouts)
+
+  // telas
+  let cur = 0;
+  SEGS.forEach((s, i) => { if (t >= s.t) cur = i; });
+  SEGS.forEach((s, i) => {
+    const img = shotEls[s.shot];
+    if (i !== cur && i !== cur - 1) { img.style.opacity = 0; return; }
+    const curSeg = SEGS[cur];
+    const k = eOut(prog(t, curSeg.t, curSeg.t + .45));
+    const sc = scrollOf(s, t);
+    let x = 0, o = 1, extra = '', y = -sc;
+    if (i === cur) {
+      if (curSeg.tr === 'push') x = (1 - k) * 390;
+      if (curSeg.tr === 'back') x = -(1 - k) * 120, o = k;
+      if (curSeg.tr === 'fade') o = k, extra = ` scale(${lerp(1.04, 1, k)})`;
+      if (curSeg.tr === 'rise') o = k, y += (1 - k) * 60;
+      img.style.zIndex = curSeg.tr === 'back' ? 1 : 2;
+    } else {
+      if (k >= 1) { img.style.opacity = 0; return; }
+      if (curSeg.tr === 'push') x = -k * 120, o = 1 - k * .5;
+      if (curSeg.tr === 'back') x = k * 390;
+      if (curSeg.tr === 'fade' || curSeg.tr === 'rise') o = 1 - k * (curSeg.tr === 'rise' ? .5 : 1);
+      img.style.zIndex = curSeg.tr === 'back' ? 2 : 1;
+    }
+    img.style.opacity = o;
+    img.style.transform = `translate(${x}px, ${y}px)${extra}`;
+  });
+
+  // digitação do login
+  const typing = t > 6.3 && t < 10.6;
+  tfUser.style.display = tfPass.style.display = typing ? 'flex' : 'none';
+  if (typing) {
+    const u = 'alex'; const nu = Math.floor(clamp((t - 6.6) / .18, 0, u.length));
+    const np = Math.floor(clamp((t - 7.8) / .14, 0, 8));
+    const caretOn = Math.floor(t * 2.4) % 2 === 0;
+    const onUser = t < 7.6;
+    tfUser.className = 'typefield' + (onUser ? ' focus' : '');
+    tfPass.className = 'typefield' + (!onUser ? ' focus' : '');
+    tfUser.innerHTML = (nu ? u.slice(0, nu) : '<span style="color:#5c6684">Usuário</span>') + (onUser && caretOn ? '<i class="caret"></i>' : '');
+    tfPass.innerHTML = (np ? '<span style="letter-spacing:2px">' + '•'.repeat(np) + '</span>' : '<span style="color:#5c6684">Senha</span>') + (!onUser && caretOn ? '<i class="caret"></i>' : '');
+  }
+
+  // toque
+  let tapShown = false;
+  for (let i = 0; i < TAPS.length; i++) {
+    const tp = TAPS[i];
+    if (t > tp.t - .7 && t < tp.t + .55) {
+      tapShown = true;
+      const prev = TAPS[i - 1];
+      const from = prev && tp.t - prev.t < 2.5 ? prev : { x: tp.x + 70, y: tp.y + 140 };
+      const mv = eIO(prog(t, tp.t - .7, tp.t - .15));
+      const x = lerp(from.x, tp.x, mv), y = lerp(from.y, tp.y, mv);
+      const press = t > tp.t - .08 && t < tp.t + .12 ? .78 : 1;
+      touch.style.left = x + 'px'; touch.style.top = y + 'px';
+      touch.style.opacity = Math.min(prog(t, tp.t - .7, tp.t - .45), 1 - prog(t, tp.t + .2, tp.t + .55)) * .9;
+      touch.style.transform = `scale(${press})`;
+      const rk = prog(t, tp.t, tp.t + .5);
+      const rs = 20 + rk * 70;
+      Object.assign(ripple.style, { left: tp.x - rs / 2 + 'px', top: tp.y - rs / 2 + 'px', width: rs + 'px', height: rs + 'px', opacity: rk > 0 && rk < 1 ? (1 - rk) * .9 : 0 });
+      break;
+    }
+  }
+  if (!tapShown) { touch.style.opacity = 0; ripple.style.opacity = 0; }
+
+  // callouts
+  const CX = screenX + 390 + 90;
+  CALLS.forEach((c) => {
+    const [a, b, shot, r] = c;
+    const v = inOut(t, a, b, .45, .35);
+    const vis = v > 0.001;
+    c.box.style.display = c.hl.style.display = vis ? 'block' : 'none';
+    c.line.style.display = c.dot.style.display = vis ? 'block' : 'none';
+    if (!vis) return;
+    const sc = scrollOf(segOf(shot), t);
+    const hx = r[0] - 6, hy = r[1] - sc - 6, hw = r[2] + 12, hh = r[3] + 12;
+    Object.assign(c.hl.style, { left: hx + 'px', top: hy + 'px', width: hw + 'px', height: hh + 'px', opacity: v });
+    const zh = c.textOnly ? 0 : r[3] * c.k;
+    const boxH = zh + 56;
+    let by = screenY + hy + hh / 2 - boxH / 2;
+    by = clamp(by, 70, 1080 - 70 - boxH);
+    const slide = (1 - v) * 40;
+    c.box.style.left = CX + slide + 'px';
+    c.box.style.top = by + 'px';
+    c.box.style.opacity = v;
+    c.box.style.transform = `scale(${lerp(.94, 1, v)})`;
+    c.box.style.filter = `blur(${(1 - v) * 6}px)`;
+    // ligação: da borda direita do destaque até o cartão
+    const x1 = screenX + hx + hw, y1 = screenY + hy + hh / 2;
+    const x2 = CX + slide - 8, y2 = c.textOnly ? by + 22 : by + 56 + zh / 2;
+    const draw = eOut(prog(t, a + .1, a + .6));
+    const mx = lerp(x1, x2, draw), my = lerp(y1, y2, draw);
+    c.line.setAttribute('d', `M${x1},${y1} C${x1 + 40},${y1} ${mx - 40},${my} ${mx},${my}`);
+    c.line.style.opacity = v * .9;
+    c.dot.setAttribute('cx', x1); c.dot.setAttribute('cy', y1); c.dot.style.opacity = v;
+  });
+
+  // textos
+  COPIES.forEach((c) => {
+    const vis = t > c.a - .05 && t < c.b + .5;
+    c.el.style.display = vis ? 'block' : 'none';
+    if (!vis) return;
+    const out = eIn(prog(t, c.b, c.b + .4));
+    const top = c.top != null ? c.top : 540 - c.el.offsetHeight / 2;
+    c.el.style.top = top + 'px';
+    c.el.style.opacity = 1 - out;
+    c.el.style.transform = `translateY(${-out * 30}px)`;
+    const eb = c.el.querySelector('.eyebrow'); const ek = eOut(prog(t, c.a, c.a + .5));
+    eb.style.opacity = ek; eb.style.transform = `translateX(${(1 - ek) * -30}px)`;
+    c.el.querySelectorAll('h1 .w').forEach((w, i) => { const k = eOut(prog(t, c.a + .15 + i * .07, c.a + .7 + i * .07)); w.style.opacity = k; w.style.transform = `translateY(${(1 - k) * 40}px)`; w.style.filter = `blur(${(1 - k) * 10}px)`; });
+    const p = c.el.querySelector('p'); const pk = eOut(prog(t, c.a + .5, c.a + 1.1));
+    p.style.opacity = pk; p.style.transform = `translateY(${(1 - pk) * 20}px)`;
+  });
+
+  // stepper
+  const sv = inOut(t, 17.2, 41.3, .6, .4);
+  $('stepper').style.display = sv > 0 ? 'flex' : 'none';
+  $('stepper').style.opacity = sv;
+  [...$('stepper').children].forEach((st, i) => {
+    const ik = eOut(prog(t, 17.3 + i * .1, 17.8 + i * .1));
+    st.style.opacity = ik; st.style.transform = `translateX(${(1 - ik) * -30}px)`;
+    const active = t >= TS[i] && (i === 4 ? t < 41.6 : t < TS[i + 1]);
+    const done = i < 4 ? t >= TS[i + 1] : t >= 41.6;
+    const n = st.querySelector('.n');
+    n.style.background = active ? 'var(--pink)' : done ? 'var(--pink-bg)' : 'var(--ink)';
+    n.style.borderColor = active || done ? 'var(--pink)' : 'var(--line)';
+    n.style.color = active ? '#fff' : done ? 'var(--pink-mid)' : 'var(--mute)';
+    n.style.boxShadow = active ? '0 0 30px rgba(237,22,80,.6)' : 'none';
+    n.innerHTML = done && !active ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff5f8f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : String(i + 1);
+    st.querySelector('.tx b').style.color = active ? '#fff' : done ? 'var(--dim)' : 'var(--mute)';
+    st.querySelector('.tx span').style.color = active ? 'var(--dim)' : 'var(--mute)';
+    const bar = st.querySelector('.bar i');
+    if (bar) bar.style.height = (i < 4 ? prog(t, TS[i], TS[i + 1]) * 100 : 0) + '%';
+  });
+
+  // recursos
+  const fv = t > 63.9 && t < 71.2;
+  $('features').style.display = fv ? 'block' : 'none';
+  if (fv) {
+    const out = eIn(prog(t, 70.2, 70.9));
+    const tk = eOut(prog(t, 64.3, 65.0));
+    $('featTitle').style.opacity = tk * (1 - out); $('featTitle').style.transform = `translateY(${(1 - tk) * 30 - out * 30}px)`;
+    FEATS.forEach((f, i) => {
+      const k = eBack(prog(t, 64.7 + i * .13, 65.3 + i * .13));
+      const ko = clamp(prog(t, 64.7 + i * .13, 65.1 + i * .13));
+      f.el.style.opacity = ko * (1 - out);
+      f.el.style.transform = `translateY(${(1 - k) * 60}px) scale(${lerp(.9, 1, k) * (1 - out * .06)})`;
+      const glow = Math.max(0, Math.sin((t - 66 - i * .35) * 1.6)) * .35;
+      f.el.style.borderColor = `rgba(255,95,143,${.15 + glow})`;
+    });
+  }
+
+  // encerramento
+  const ov = t > 70.6;
+  $('outro').style.display = ov ? 'block' : 'none';
+  if (ov) {
+    const ik = eBack(prog(t, 70.8, 71.7));
+    $('outIcon').style.opacity = clamp(prog(t, 70.8, 71.2)); $('outIcon').style.transform = `scale(${lerp(.5, 1, ik)}) rotate(${(1 - ik) * -12}deg)`;
+    const ti = eOut(prog(t, 71.2, 71.9)); $('outTitle').style.opacity = ti; $('outTitle').style.transform = `translateY(${(1 - ti) * 40}px)`; $('outTitle').style.letterSpacing = lerp(18, 1, ti) + 'px';
+    const tg = eOut(prog(t, 71.7, 72.3)); $('outTag').style.opacity = tg; $('outTag').style.transform = `translateY(${(1 - tg) * 20}px)`;
+    [...$('outChips').children].forEach((c, i) => { const k = eOut(prog(t, 72.1 + i * .1, 72.6 + i * .1)); c.style.opacity = k; c.style.transform = `translateY(${(1 - k) * 20}px)`; });
+    const ln = eOut(prog(t, 72.8, 73.6)); $('outLine').style.transform = `scaleX(${ln})`;
+    const br = eOut(prog(t, 73.1, 73.8)); $('outBrands').style.opacity = br; $('outBrands').style.transform = `translateY(${(1 - br) * 24}px)`;
+    const by = eOut(prog(t, 73.9, 74.6)); $('outBy').style.opacity = by; $('outBy').style.transform = `translateY(${(1 - by) * 20}px)`;
+  }
+}
+
+window.render = render;
+window.DUR = DUR;
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.complete ? 1 : new Promise((r) => { i.onload = i.onerror = r; }))]);
+</script>
+</body>
+</html>
