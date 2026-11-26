@@ -882,7 +882,8 @@
   const TROLLEY_MEALS = [
     { key: 'jantar', label: 'Jantar' },
     { key: 'cafe', label: 'Café' },
-    { key: 'lanche', label: 'Lanche' }
+    { key: 'lanche', label: 'Lanche' },
+    { key: 'snk4', label: 'SNK4' }
   ];
 
   function freshMealTrolley() {
@@ -944,6 +945,19 @@
     ['spml', 'preorder'].forEach(k => {
       const st = doc[k] || {};
       wiz[k] = { desc: st.desc || '', na: !!st.na, photos: getSpecialPhotos(st).map(p => ({ file: null, previewUrl: null, uploadedUrl: p.uploadedUrl || null })) };
+    });
+    // trolleys: o rascunho salvo guarda só as URLs (frenteUrl/versoUrl); remonta
+    // o formato do wiz e garante as refeições novas (ex.: SNK4) em rascunhos antigos
+    TROLLEY_CLASSES.forEach(cls => {
+      const saved = doc[cls.key] || {};
+      const meals = freshMealTrolley();
+      TROLLEY_MEALS.forEach(m => {
+        const st = saved[m.key] || {};
+        meals[m.key].na = !!st.na;
+        meals[m.key].frente.uploadedUrl = st.frenteUrl || (st.frente && st.frente.uploadedUrl) || null;
+        meals[m.key].verso.uploadedUrl = st.versoUrl || (st.verso && st.verso.uploadedUrl) || null;
+      });
+      wiz[cls.key] = meals;
     });
     renderWizardStep();
     showScreen('screenWizard');
